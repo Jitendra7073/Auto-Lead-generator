@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email System Manager</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-primary: #fafbfc;
+        --bg-secondary: #ffffff;
+        --bg-card: #ffffff;
+        --bg-hover: #f8f9fa;
+        --accent-primary: #2563eb;
+        --accent-secondary: #3b82f6;
+        --success-color: #059669;
+        --warning-color: #d97706;
+        --error-color: #dc2626;
+        --text-primary: #111827;
+        --text-secondary: #4b5563;
+        --text-muted: #9ca3af;
+        --border-light: #e5e7eb;
+        --border-medium: #d1d5db;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.5;
+      }
+
+      /* Header */
+      .header {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-light);
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .header h1 {
+        font-size: 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Tabs */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        padding: 0 24px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      .tab {
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+      }
+
+      .tab:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+
+      .tab.active {
+        color: var(--accent-primary);
+        border-bottom-color: var(--accent-primary);
+      }
+
+      /* Main Content */
+      .main-content {
+        padding: 24px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      /* Cards */
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        margin-bottom: 24px;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .card-title {
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Form */
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      input,
+      select,
+      textarea {
+        padding: 10px 12px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-medium);
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-family: inherit;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 200px;
+        font-family: "Monaco", "Menlo", monospace;
+        font-size: 13px;
+      }
+
+      /* Buttons */
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: var(--accent-primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--accent-secondary);
+      }
+
+      .btn-success {
+        background: var(--success-color);
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #047857;
+      }
+
+      .btn-danger {
+        background: var(--error-color);
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #b91c1c;
+      }
+
+      .btn-secondary {
+        background: var(--text-secondary);
+        color: white;
+      }
+
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+
+      /* Table */
+      .table-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      thead {
+        background: var(--bg-hover);
+      }
+
+      th {
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-light);
+        font-size: 14px;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      tbody tr:hover {
+        background: var(--bg-hover);
+      }
+
+      /* Badges */
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .badge-active {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      .badge-inactive {
+        background: #f3f4f6;
+        color: #4b5563;
+      }
+
+      /* Toggle Switch */
+      .toggle {
+        position: relative;
+        width: 44px;
+        height: 24px;
+      }
+
+      .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--border-medium);
+        transition: 0.3s;
+        border-radius: 24px;
+      }
+
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+
+      .toggle input:checked + .toggle-slider {
+        background-color: var(--success-color);
+      }
+
+      .toggle input:checked + .toggle-slider:before {
+        transform: translateX(20px);
+      }
+
+      /* Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal.show {
+        display: flex;
+      }
+
+      .modal-content {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+
+      .modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--text-secondary);
+      }
+
+      .modal-body {
+        padding: 24px;
+      }
+
+      .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+
+      /* Stats Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+      }
+
+      .stat-label {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      /* Actions */
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      /* Empty State */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+      }
+
+      .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      /* Code Editor */
+      .code-editor {
+        font-family: "Monaco", "Menlo", monospace;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      /* Status Indicator */
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+      }
+
+      .status-active {
+        background: var(--success-color);
+      }
+
+      .status-inactive {
+        background: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="header">
+      <h1>📧 Email System Manager</h1>
+      <button class="btn btn-primary" onclick="showSenderModal()">
+        ➕ Add Sender
+      </button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('senders')" data-tab="senders">
+        📮 Email Senders
+      </div>
+      <div class="tab" onclick="switchTab('templates')" data-tab="templates">
+        📝 Email Templates
+      </div>
+      <div class="tab" onclick="switchTab('campaigns')" data-tab="campaigns">
+        📨 Campaigns
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- ============================================ -->
+      <!-- EMAIL SENDERS TAB -->
+      <!-- ============================================ -->
+      <div id="tab-senders" class="tab-content active">
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Senders</div>
+            <div class="stat-value" id="total-senders">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Senders</div>
+            <div
+              class="stat-value"
+              id="active-senders"
+              style="color: var(--success-color)">
+              0
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Daily Capacity</div>
+            <div class="stat-value" id="daily-capacity">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Sent Today</div>
+            <div class="stat-value" id="sent-today">0</div>
+          </div>
+        </div>
+
+        <!-- Senders Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📮 Email Sender Accounts</div>
+            <div style="display: flex; gap: 12px">
+              <button
+                class="btn btn-primary btn-sm"
+                onclick="showSenderModal()">
+                ➕ Add Sender
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Service</th>
+                  <th>Daily Limit</th>
+                  <th>Sent Today</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="senders-table">
+                <tr>
+                  <td colspan="7" class="empty-state">
+                    <div class="empty-icon">📮</div>
+                    No email senders yet. Add your first sender account!
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- EMAIL TEMPLATES TAB -->
+      <!-- ============================================ -->
+      <div id="tab-templates" class="tab-content">
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Templates</div>
+            <div class="stat-value" id="total-templates">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Templates</div>
+            <div
+              class="stat-value"
+              id="active-templates"
+              style="color: var(--success-color)">
+              0
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Categories</div>
+            <div class="stat-value" id="template-categories">0</div>
+          </div>
+        </div>
+
+        <!-- Templates Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📝 Email Templates</div>
+            <button
+              class="btn btn-primary btn-sm"
+              onclick="showTemplateModal()">
+              ➕ Create Template
+            </button>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Name</th>
+                  <th>Subject</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="templates-table">
+                <tr>
+                  <td colspan="6" class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    No email templates yet. Create your first template!
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- CAMPAIGNS TAB -->
+      <!-- ============================================ -->
+      <div id="tab-campaigns" class="tab-content">
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Campaigns</div>
+            <div class="stat-value" id="total-campaigns">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Campaigns</div>
+            <div
+              class="stat-value"
+              id="active-campaigns"
+              style="color: var(--success-color)">
+              0
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Emails Queued</div>
+            <div class="stat-value" id="emails-queued">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Emails Sent</div>
+            <div class="stat-value" id="emails-sent">0</div>
+          </div>
+        </div>
+
+        <!-- Create Campaign -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📨 Create New Campaign</div>
+          </div>
+
+          <form id="campaign-form" onsubmit="createCampaign(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Campaign Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="e.g., Welcome Email Series" />
+              </div>
+              <div class="form-group">
+                <label>Template *</label>
+                <select
+                  name="template_id"
+                  required
+                  id="campaign-template-select">
+                  <option value="">Select a template...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Target Recipients *</label>
+                <select name="target_type" required>
+                  <option value="all">All Email Contacts</option>
+                  <option value="wordpress">WordPress Site Owners</option>
+                  <option value="executives">Company Executives</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select name="status">
+                  <option value="queued">Queued (Start when ready)</option>
+                  <option value="sending">Start Immediately</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top: 20px">
+              <button type="submit" class="btn btn-primary">
+                🚀 Create Campaign
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Campaigns Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 Campaign History</div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Recipients</th>
+                  <th>Sent</th>
+                  <th>Failed</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="campaigns-table">
+                <tr>
+                  <td colspan="7" class="empty-state">
+                    <div class="empty-icon">📨</div>
+                    No campaigns yet. Create your first campaign above!
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODALS -->
+    <!-- ============================================ -->
+
+    <!-- Add/Edit Sender Modal -->
+    <div id="sender-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="sender-modal-title">Add Email Sender</h3>
+          <button class="modal-close" onclick="closeSenderModal()">
+            &times;
+          </button>
+        </div>
+        <form id="sender-form" onsubmit="saveSender(event)">
+          <input type="hidden" name="id" id="sender-id" />
+          <div class="modal-body">
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="e.g., Primary Account" />
+              </div>
+              <div class="form-group full-width">
+                <label>Email Address *</label>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="account@gmail.com" />
+              </div>
+              <div class="form-group full-width">
+                <label>Password / App Password *</label>
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  placeholder="Your 16-character app password" />
+                <small
+                  style="
+                    color: var(--text-muted);
+                    display: block;
+                    margin-top: 4px;
+                  ">
+                  Use an App Password, not your regular password
+                </small>
+              </div>
+              <div class="form-group">
+                <label>Service</label>
+                <select name="service">
+                  <option value="gmail">Gmail</option>
+                  <option value="outlook">Outlook/Hotmail</option>
+                  <option value="custom">Custom SMTP</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Daily Limit</label>
+                <input
+                  type="number"
+                  name="daily_limit"
+                  value="500"
+                  min="1"
+                  max="10000" />
+              </div>
+              <div
+                class="form-group"
+                id="smtp-host-group"
+                style="display: none">
+                <label>SMTP Host</label>
+                <input
+                  type="text"
+                  name="smtp_host"
+                  placeholder="smtp.example.com" />
+              </div>
+              <div
+                class="form-group"
+                id="smtp-port-group"
+                style="display: none">
+                <label>SMTP Port</label>
+                <input type="number" name="smtp_port" placeholder="587" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeSenderModal()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Save Sender</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add/Edit Template Modal -->
+    <div id="template-modal" class="modal">
+      <div class="modal-content" style="max-width: 800px">
+        <div class="modal-header">
+          <h3 class="modal-title" id="template-modal-title">
+            Create Email Template
+          </h3>
+          <button class="modal-close" onclick="closeTemplateModal()">
+            &times;
+          </button>
+        </div>
+        <form id="template-form" onsubmit="saveTemplate(event)">
+          <input type="hidden" name="id" id="template-id" />
+          <div class="modal-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Template Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="e.g., Welcome Email" />
+              </div>
+              <div class="form-group">
+                <label>Category</label>
+                <select name="category">
+                  <option value="general">General</option>
+                  <option value="outreach">Cold Outreach</option>
+                  <option value="welcome">Welcome</option>
+                  <option value="promotion">Promotion</option>
+                  <option value="followup">Follow-up</option>
+                </select>
+              </div>
+              <div class="form-group full-width">
+                <label>Email Subject *</label>
+                <input
+                  type="text"
+                  name="subject"
+                  required
+                  placeholder="Hello {{name}}!" />
+              </div>
+              <div class="form-group full-width">
+                <label>Description</label>
+                <input
+                  type="text"
+                  name="description"
+                  placeholder="Brief description of this template" />
+              </div>
+              <div class="form-group full-width">
+                <label>HTML Content *</label>
+                <textarea
+                  name="html_content"
+                  required
+                  class="code-editor"
+                  placeholder="<h1>Hello {{name}}!</h1><p>Your HTML here...</p>"></textarea>
+                <small
+                  style="
+                    color: var(--text-muted);
+                    display: block;
+                    margin-top: 4px;
+                  ">
+                  Available placeholders: {{name}}, {{company}}, {{email}},
+                  {{site}}
+                </small>
+              </div>
+              <div class="form-group full-width">
+                <label>Plain Text Version</label>
+                <textarea
+                  name="text_content"
+                  style="min-height: 100px"
+                  placeholder="Plain text version for email clients that don't support HTML"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeTemplateModal()">
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="previewTemplate()">
+              👁️ Preview
+            </button>
+            <button type="submit" class="btn btn-primary">Save Template</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "/api/email";
+      let currentTab = "senders";
+      let editingSenderId = null;
+      let editingTemplateId = null;
+
+      // ============================================
+      // TAB SWITCHING
+      // ============================================
+      function switchTab(tab) {
+        currentTab = tab;
+
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
+
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((c) => c.classList.remove("active"));
+        document.getElementById(`tab-${tab}`).classList.add("active");
+
+        if (tab === "senders") loadSenders();
+        else if (tab === "templates") loadTemplates();
+        else if (tab === "campaigns") {
+          loadTemplates();
+          loadCampaigns();
+        }
+      }
+
+      // ============================================
+      // SENDERS CRUD
+      // ============================================
+      async function loadSenders() {
+        try {
+          const res = await fetch(`${API_BASE}/senders`);
+          const json = await res.json();
+
+          if (json.success) {
+            renderSenders(json.data);
+            updateSenderStats(json.data);
+          }
+        } catch (error) {
+          console.error("Error loading senders:", error);
+        }
+      }
+
+      function renderSenders(senders) {
+        const tbody = document.getElementById("senders-table");
+
+        if (senders.length === 0) {
+          tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty-state">
+              <div class="empty-icon">📮</div>
+              No email senders yet. Add your first sender account!
+            </td>
+          </tr>
+        `;
+          return;
+        }
+
+        tbody.innerHTML = senders
+          .map(
+            (sender) => `
+        <tr>
+          <td>
+            <label class="toggle">
+              <input type="checkbox" ${
+                sender.is_active ? "checked" : ""
+              } onchange="toggleSender(${sender.id})">
+              <span class="toggle-slider"></span>
+            </label>
+          </td>
+          <td><strong>${escapeHtml(sender.name)}</strong></td>
+          <td>${escapeHtml(sender.email)}</td>
+          <td><span class="badge">${sender.service}</span></td>
+          <td>${sender.sent_today} / ${sender.daily_limit}</td>
+          <td>${sender.sent_today}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-secondary btn-sm" onclick="testSender(${
+                sender.id
+              })">🧪 Test</button>
+              <button class="btn btn-primary btn-sm" onclick="editSender(${
+                sender.id
+              })">✏️ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteSender(${
+                sender.id
+              })">🗑️ Delete</button>
+            </div>
+          </td>
+        </tr>
+      `,
+          )
+          .join("");
+      }
+
+      function updateSenderStats(senders) {
+        const active = senders.filter((s) => s.is_active === 1);
+        const totalCapacity = active.reduce((sum, s) => sum + s.daily_limit, 0);
+        const sentToday = senders.reduce((sum, s) => sum + s.sent_today, 0);
+
+        document.getElementById("total-senders").textContent = senders.length;
+        document.getElementById("active-senders").textContent = active.length;
+        document.getElementById("daily-capacity").textContent =
+          totalCapacity.toLocaleString();
+        document.getElementById("sent-today").textContent =
+          sentToday.toLocaleString();
+      }
+
+      function showSenderModal(sender = null) {
+        editingSenderId = sender ? sender.id : null;
+        document.getElementById("sender-modal-title").textContent = sender
+          ? "Edit Email Sender"
+          : "Add Email Sender";
+
+        if (sender) {
+          document.getElementById("sender-id").value = sender.id;
+          document.querySelector('[name="name"]').value = sender.name;
+          document.querySelector('[name="email"]').value = sender.email;
+          document.querySelector('[name="service"]').value = sender.service;
+          document.querySelector('[name="daily_limit"]').value =
+            sender.daily_limit;
+        } else {
+          document.getElementById("sender-form").reset();
+          document.getElementById("sender-id").value = "";
+        }
+
+        document.getElementById("sender-modal").classList.add("show");
+      }
+
+      function closeSenderModal() {
+        document.getElementById("sender-modal").classList.remove("show");
+        editingSenderId = null;
+      }
+
+      async function saveSender(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+          const url = editingSenderId
+            ? `${API_BASE}/senders/${editingSenderId}`
+            : `${API_BASE}/senders`;
+
+          const method = editingSenderId ? "PUT" : "POST";
+
+          const res = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+
+          const json = await res.json();
+
+          if (json.success) {
+            closeSenderModal();
+            loadSenders();
+            alert(editingSenderId ? "Sender updated!" : "Sender added!");
+          } else {
+            alert(json.error || "Failed to save sender");
+          }
+        } catch (error) {
+          alert("Error saving sender");
+        }
+      }
+
+      async function editSender(id) {
+        try {
+          const res = await fetch(`${API_BASE}/senders/${id}`);
+          const json = await res.json();
+
+          if (json.success) {
+            showSenderModal(json.data);
+          }
+        } catch (error) {
+          alert("Error loading sender");
+        }
+      }
+
+      async function deleteSender(id) {
+        if (!confirm("Delete this sender account?")) return;
+
+        try {
+          await fetch(`${API_BASE}/senders/${id}`, { method: "DELETE" });
+          loadSenders();
+        } catch (error) {
+          alert("Error deleting sender");
+        }
+      }
+
+      async function toggleSender(id) {
+        try {
+          await fetch(`${API_BASE}/senders/${id}/toggle`, { method: "PATCH" });
+          loadSenders();
+        } catch (error) {
+          alert("Error toggling sender");
+        }
+      }
+
+      async function testSender(id) {
+        try {
+          const res = await fetch(`${API_BASE}/senders/${id}/test`, {
+            method: "POST",
+          });
+          const json = await res.json();
+
+          if (json.success) {
+            alert("✅ Connection test successful!");
+          } else {
+            alert("❌ Connection failed: " + json.error);
+          }
+        } catch (error) {
+          alert("Error testing connection");
+        }
+      }
+
+      // ============================================
+      // TEMPLATES CRUD
+      // ============================================
+      async function loadTemplates() {
+        try {
+          const res = await fetch(`${API_BASE}/templates`);
+          const json = await res.json();
+
+          if (json.success) {
+            renderTemplates(json.data);
+            updateTemplateStats(json.data);
+            populateTemplateSelect(json.data);
+          }
+        } catch (error) {
+          console.error("Error loading templates:", error);
+        }
+      }
+
+      function renderTemplates(templates) {
+        const tbody = document.getElementById("templates-table");
+
+        if (templates.length === 0) {
+          tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">
+              <div class="empty-icon">📝</div>
+              No email templates yet. Create your first template!
+            </td>
+          </tr>
+        `;
+          return;
+        }
+
+        tbody.innerHTML = templates
+          .map(
+            (template) => `
+        <tr>
+          <td>
+            <span class="status-dot ${
+              template.is_active ? "status-active" : "status-inactive"
+            }"></span>
+            ${template.is_active ? "Active" : "Inactive"}
+          </td>
+          <td><strong>${escapeHtml(template.name)}</strong></td>
+          <td>${escapeHtml(template.subject)}</td>
+          <td><span class="badge">${template.category}</span></td>
+          <td>${escapeHtml(template.description || "-")}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-secondary btn-sm" onclick="toggleTemplate(${
+                template.id
+              })">
+                ${template.is_active ? "⏸️ Disable" : "▶️ Enable"}
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="editTemplate(${
+                template.id
+              })">✏️ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${
+                template.id
+              })">🗑️ Delete</button>
+            </div>
+          </td>
+        </tr>
+      `,
+          )
+          .join("");
+      }
+
+      function updateTemplateStats(templates) {
+        const active = templates.filter((t) => t.is_active === 1);
+        const categories = [...new Set(templates.map((t) => t.category))]
+          .length;
+
+        document.getElementById("total-templates").textContent =
+          templates.length;
+        document.getElementById("active-templates").textContent = active.length;
+        document.getElementById("template-categories").textContent = categories;
+      }
+
+      function populateTemplateSelect(templates) {
+        console.log("All fetched templates: ", templates);
+        const select = document.getElementById("campaign-template-select");
+
+        // Handle different types of truthy values from SQLite returning is_active
+        const active = templates.filter(
+          (t) =>
+            t.is_active === 1 || t.is_active === "1" || t.is_active === true,
+        );
+        console.log("Active templates filtered for dropdown: ", active);
+
+        select.innerHTML =
+          '<option value="">Select a template...</option>' +
+          active
+            .map(
+              (t) =>
+                `<option value="${t.id}">${escapeHtml(t.name)} - ${escapeHtml(
+                  t.subject,
+                )}</option>`,
+            )
+            .join("");
+      }
+
+      function showTemplateModal(template = null) {
+        editingTemplateId = template ? template.id : null;
+        document.getElementById("template-modal-title").textContent = template
+          ? "Edit Email Template"
+          : "Create Email Template";
+
+        if (template) {
+          document.getElementById("template-id").value = template.id;
+          document.querySelector('[name="name"]').value = template.name;
+          document.querySelector('[name="subject"]').value = template.subject;
+          document.querySelector('[name="html_content"]').value =
+            template.html_content;
+          document.querySelector('[name="text_content"]').value =
+            template.text_content || "";
+          document.querySelector('[name="description"]').value =
+            template.description || "";
+          document.querySelector('[name="category"]').value = template.category;
+        } else {
+          document.getElementById("template-form").reset();
+          document.getElementById("template-id").value = "";
+        }
+
+        document.getElementById("template-modal").classList.add("show");
+      }
+
+      function closeTemplateModal() {
+        document.getElementById("template-modal").classList.remove("show");
+        editingTemplateId = null;
+      }
+
+      async function saveTemplate(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+          const url = editingTemplateId
+            ? `${API_BASE}/templates/${editingTemplateId}`
+            : `${API_BASE}/templates`;
+
+          const method = editingTemplateId ? "PUT" : "POST";
+
+          const res = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+
+          const json = await res.json();
+
+          if (json.success) {
+            closeTemplateModal();
+            loadTemplates();
+            alert(
+              editingTemplateId ? "Template updated!" : "Template created!",
+            );
+          } else {
+            alert(json.error || "Failed to save template");
+          }
+        } catch (error) {
+          alert("Error saving template");
+        }
+      }
+
+      async function editTemplate(id) {
+        try {
+          const res = await fetch(`${API_BASE}/templates/${id}`);
+          const json = await res.json();
+
+          if (json.success) {
+            showTemplateModal(json.data);
+          }
+        } catch (error) {
+          alert("Error loading template");
+        }
+      }
+
+      async function deleteTemplate(id) {
+        if (!confirm("Delete this template?")) return;
+
+        try {
+          await fetch(`${API_BASE}/templates/${id}`, { method: "DELETE" });
+          loadTemplates();
+        } catch (error) {
+          alert("Error deleting template");
+        }
+      }
+
+      async function toggleTemplate(id) {
+        try {
+          await fetch(`${API_BASE}/templates/${id}/toggle`, {
+            method: "PATCH",
+          });
+          loadTemplates();
+        } catch (error) {
+          alert("Error toggling template");
+        }
+      }
+
+      function previewTemplate() {
+        const subject = document.querySelector('[name="subject"]').value;
+        const html = document.querySelector('[name="html_content"]').value;
+
+        const testData = {
+          name: "John Doe",
+          company: "Example Inc",
+          email: "john@example.com",
+          site: "example.com",
+        };
+
+        let preview = html;
+        Object.keys(testData).forEach((key) => {
+          const regex = new RegExp(`\\{\\{${key}\\}\\}`, "gi");
+          preview = preview.replace(regex, testData[key]);
+        });
+
+        const win = window.open("", "_blank");
+        win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Preview</title></head>
+        <body>${preview}</body>
+        </html>
+      `);
+      }
+
+      // ============================================
+      // CAMPAIGNS
+      // ============================================
+      async function loadCampaigns() {
+        try {
+          const res = await fetch(`${API_BASE}/campaigns`);
+          const json = await res.json();
+
+          if (json.success) {
+            renderCampaigns(json.data);
+          }
+        } catch (error) {
+          console.error("Error loading campaigns:", error);
+        }
+      }
+
+      function renderCampaigns(campaigns) {
+        const tbody = document.getElementById("campaigns-table");
+
+        if (campaigns.length === 0) {
+          tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty-state">
+              <div class="empty-icon">📨</div>
+              No campaigns yet. Create your first campaign above!
+            </td>
+          </tr>
+        `;
+          return;
+        }
+
+        tbody.innerHTML = campaigns
+          .map(
+            (campaign) => `
+        <tr>
+          <td><strong>${escapeHtml(campaign.name)}</strong></td>
+          <td><span class="badge badge-${campaign.status}">${
+              campaign.status
+            }</span></td>
+          <td>${campaign.total_recipients || 0}</td>
+          <td>${campaign.sent_count || 0}</td>
+          <td>${campaign.failed_count || 0}</td>
+          <td>${new Date(campaign.created_at).toLocaleDateString()}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-secondary btn-sm" onclick="viewCampaignDetails(${
+                campaign.id
+              })">👁️ View</button>
+            </div>
+          </td>
+        </tr>
+      `,
+          )
+          .join("");
+      }
+
+      async function createCampaign(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+          const res = await fetch(`${API_BASE}/campaigns`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+
+          const json = await res.json();
+
+          if (json.success) {
+            event.target.reset();
+            loadCampaigns();
+            alert("Campaign created successfully!");
+          } else {
+            alert(json.error || "Failed to create campaign");
+          }
+        } catch (error) {
+          alert("Error creating campaign");
+        }
+      }
+
+      // ============================================
+      // UTILITIES
+      // ============================================
+      function escapeHtml(text) {
+        if (!text) return "";
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Handle service change for SMTP fields
+      document
+        .querySelector('[name="service"]')
+        .addEventListener("change", function () {
+          const isCustom = this.value === "custom";
+          document.getElementById("smtp-host-group").style.display = isCustom
+            ? "block"
+            : "none";
+          document.getElementById("smtp-port-group").style.display = isCustom
+            ? "block"
+            : "none";
+        });
+
+      // Load initial data
+      loadSenders();
+    </script>
+  </body>
+</html>
