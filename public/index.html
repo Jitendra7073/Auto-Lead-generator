@@ -418,6 +418,24 @@
         box-shadow: 0 8px 20px var(--accent-glow);
       }
 
+      .btn-quick-domain {
+        padding: 4px 12px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-quick-domain:hover {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+        transform: translateY(-1px);
+      }
+
       .btn-scrape {
         padding: 12px 24px;
         background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -1089,6 +1107,9 @@
       <div class="nav-item" onclick="switchTab('keywords')" data-tab="keywords">
         <span>📝 Keywords</span>
       </div>
+      <div class="nav-item" onclick="switchTab('excluded')" data-tab="excluded">
+        <span>⛔ Excluded</span>
+      </div>
       <div class="nav-item" onclick="switchTab('sites')" data-tab="sites">
         <span>🌐 Sites</span>
       </div>
@@ -1240,6 +1261,7 @@
             </tbody>
           </table>
         </div>
+
       </div>
 
       <!-- Sites Tab -->
@@ -3649,6 +3671,111 @@
           </div>
         </div>
       </div>
+      <!-- Excluded Domains Tab -->
+      <div id="tab-excluded" class="tab-content">
+        <!-- Top bar: Add domain + Bulk toggle -->
+        <div style="
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 16px;
+          padding: 16px 20px;
+          margin-bottom: 16px;
+        ">
+         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+  <input
+    type="text"
+    id="excluded-domain-input"
+    placeholder="Domain (e.g. youtube.com)"
+    style="flex: 1; min-width: 180px; height: 40px; border: 1px solid gray; padding: 0 10px; font-size: 14px; border-radius: 4px;"
+    onkeypress="if (event.key === 'Enter') addExcludedDomain();" />
+  
+  <input
+    type="text"
+    id="excluded-domain-reason"
+    placeholder="Reason (optional)"
+    style="flex: 0 0 180px; height: 40px; border: 1px solid gray; padding: 0 10px; font-size: 14px; border-radius: 4px;"
+    onkeypress="if (event.key === 'Enter') addExcludedDomain();" />
+  
+  <button class="btn-add" onclick="addExcludedDomain()" style="padding: 12px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+    <span>+</span> <span>Add</span>
+  </button>
+  
+  <button class="btn-quick-domain" onclick="toggleBulkAdd()" style="padding: 8px 14px; font-size: 13px; background-color: #f8f9fa; color: #007bff; border: 1px solid #007bff; border-radius: 4px; display: flex; align-items: center; gap: 8px;">
+    📋 Bulk Add
+  </button>
+  
+  <span id="excluded-count-badge" style="
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  ">0 blocked</span>
+</div>
+
+          <!-- Bulk add (hidden by default) -->
+          <div id="bulk-add-section" style="display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+            <textarea
+              id="excluded-bulk-input"
+              placeholder="Paste domains — one per line, or comma separated&#10;youtube.com, facebook.com&#10;twitter.com"
+              style="
+                width: 100%; min-height: 80px; padding: 10px; box-sizing: border-box;
+                border: 1px solid var(--border-color); border-radius: 10px;
+                background: var(--bg-tertiary); color: var(--text-primary);
+                font-family: 'SF Mono', monospace; font-size: 13px;
+                resize: vertical; outline: none;
+              "></textarea>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <input type="text" id="excluded-bulk-reason" placeholder="Reason for all (optional)"
+                style="flex:1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 13px; outline: none;" />
+              <button class="btn-add" onclick="bulkAddExcludedDomains()" style="padding: 10px 18px;">
+                <span>📋</span> <span>Add All</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick-add chips -->
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
+          <span style="font-size: 12px; color: var(--text-muted); align-self: center; margin-right: 2px;">Quick:</span>
+          <button onclick="quickAddExcludedDomain('youtube.com')" class="btn-quick-domain">YouTube</button>
+          <button onclick="quickAddExcludedDomain('facebook.com')" class="btn-quick-domain">Facebook</button>
+          <button onclick="quickAddExcludedDomain('twitter.com')" class="btn-quick-domain">Twitter/X</button>
+          <button onclick="quickAddExcludedDomain('instagram.com')" class="btn-quick-domain">Instagram</button>
+          <button onclick="quickAddExcludedDomain('linkedin.com')" class="btn-quick-domain">LinkedIn</button>
+          <button onclick="quickAddExcludedDomain('pinterest.com')" class="btn-quick-domain">Pinterest</button>
+          <button onclick="quickAddExcludedDomain('reddit.com')" class="btn-quick-domain">Reddit</button>
+          <button onclick="quickAddExcludedDomain('wikipedia.org')" class="btn-quick-domain">Wikipedia</button>
+          <button onclick="quickAddExcludedDomain('amazon.com')" class="btn-quick-domain">Amazon</button>
+          <button onclick="quickAddExcludedDomain('tiktok.com')" class="btn-quick-domain">TikTok</button>
+          <button onclick="quickAddExcludedDomain('quora.com')" class="btn-quick-domain">Quora</button>
+          <button onclick="quickAddExcludedDomain('medium.com')" class="btn-quick-domain">Medium</button>
+        </div>
+
+        <!-- Domain grid -->
+        <div id="excluded-domains-grid" style="
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 12px;
+        ">
+          <div style="
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+          ">
+            <div style="font-size: 40px; margin-bottom: 12px;">⛔</div>
+            No excluded domains yet. Add domains above to block them during scraping.
+          </div>
+        </div>
+      </div>
+
     </main>
 
     <!-- ============================================ -->
@@ -5674,6 +5801,7 @@
 
         if (tab === "dashboard") loadDashboard();
         else if (tab === "keywords") loadKeywords();
+        else if (tab === "excluded") loadExcludedDomains();
         else if (tab === "sites") {
           loadSites();
           loadSiteCategories();
@@ -6686,6 +6814,241 @@
       }
 
       // Executives Scraper Functions
+
+      // ============ EXCLUDED DOMAINS FUNCTIONS ============
+
+      function toggleBulkAdd() {
+        const section = document.getElementById('bulk-add-section');
+        section.style.display = section.style.display === 'none' ? 'block' : 'none';
+      }
+
+      async function loadExcludedDomains() {
+        try {
+          const res = await fetch(`${API_BASE}/excluded-domains`);
+          const json = await res.json();
+          if (json.success) {
+            const grid = document.getElementById('excluded-domains-grid');
+            const badge = document.getElementById('excluded-count-badge');
+            const count = json.data.length;
+            if (badge) badge.textContent = `${count} blocked`;
+
+            if (count === 0) {
+              grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 14px;">
+                  <div style="font-size: 40px; margin-bottom: 12px;">⛔</div>
+                  No excluded domains yet. Add domains above to block them during scraping.
+                </div>`;
+              return;
+            }
+            grid.innerHTML = json.data.map(d => `
+              <div id="excluded-card-${d.id}" style="
+                background: var(--bg-card);
+                border: 1px solid var(--border-color);
+                border-radius: 14px;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                transition: border-color 0.2s, box-shadow 0.2s;
+              " onmouseover="this.style.borderColor='var(--accent-color)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'"
+                 onmouseout="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="font-size: 15px; font-weight: 700; color: var(--text-primary); word-break: break-all;">${d.domain}</span>
+                  <div style="display: flex; gap: 4px; flex-shrink: 0; margin-left: 8px;">
+                    <button onclick="editExcludedDomain(${d.id}, '${d.domain}', '${(d.reason || '').replace(/'/g, "\\'")}')"
+                      title="Edit" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                      onmouseover="this.style.background='var(--accent-color)'; this.style.color='white'; this.style.borderColor='var(--accent-color)'"
+                      onmouseout="this.style.background='var(--bg-tertiary)'; this.style.color='inherit'; this.style.borderColor='var(--border-color)'"
+                      >✏️</button>
+                    <button onclick="deleteExcludedDomain(${d.id})"
+                      title="Delete" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                      onmouseover="this.style.background='#e74c3c'; this.style.color='white'; this.style.borderColor='#e74c3c'"
+                      onmouseout="this.style.background='var(--bg-tertiary)'; this.style.color='inherit'; this.style.borderColor='var(--border-color)'"
+                      >🗑️</button>
+                  </div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted);">
+                  ${d.reason ? '<span style="color: var(--text-secondary);">' + d.reason + '</span>' : '<span style="font-style: italic;">No reason</span>'}
+                  &nbsp;·&nbsp; ${new Date(d.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            `).join('');
+          }
+        } catch (error) {
+          console.error('Error loading excluded domains:', error);
+        }
+      }
+
+      async function addExcludedDomain() {
+        const domainInput = document.getElementById('excluded-domain-input');
+        const reasonInput = document.getElementById('excluded-domain-reason');
+        const domain = domainInput.value.trim();
+
+        if (!domain) return;
+
+        try {
+          const res = await fetch(`${API_BASE}/excluded-domains`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain, reason: reasonInput.value.trim() }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            domainInput.value = '';
+            reasonInput.value = '';
+            loadExcludedDomains();
+            showToast(`Domain "${json.data.domain}" excluded from scraping`, 'success');
+          } else {
+            showToast(json.error || 'Failed to add domain', 'error');
+          }
+        } catch (error) {
+          showToast('Error adding excluded domain', 'error');
+        }
+      }
+
+      async function bulkAddExcludedDomains() {
+        const textarea = document.getElementById('excluded-bulk-input');
+        const reasonInput = document.getElementById('excluded-bulk-reason');
+        const raw = textarea.value.trim();
+
+        if (!raw) {
+          showToast('Please enter at least one domain', 'error');
+          return;
+        }
+
+        // Parse: split by newline, comma, space, or semicolons
+        const domains = raw
+          .split(/[\n,;\s]+/)
+          .map(d => d.trim())
+          .filter(d => d.length > 0 && d.includes('.'));
+
+        if (domains.length === 0) {
+          showToast('No valid domains found in input', 'error');
+          return;
+        }
+
+        const reason = reasonInput.value.trim() || 'Bulk add';
+        let added = 0;
+        let skipped = 0;
+        let failed = 0;
+
+        for (const domain of domains) {
+          try {
+            const res = await fetch(`${API_BASE}/excluded-domains`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ domain, reason }),
+            });
+            const json = await res.json();
+            if (json.success) {
+              added++;
+            } else {
+              skipped++; // Likely duplicate
+            }
+          } catch (error) {
+            failed++;
+          }
+        }
+
+        textarea.value = '';
+        reasonInput.value = '';
+        loadExcludedDomains();
+        showToast(`Bulk add: ${added} added, ${skipped} already exist, ${failed} failed`, added > 0 ? 'success' : 'error');
+      }
+
+      async function quickAddExcludedDomain(domain) {
+        try {
+          const res = await fetch(`${API_BASE}/excluded-domains`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain, reason: 'Quick add' }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            loadExcludedDomains();
+            showToast(`Domain "${json.data.domain}" excluded`, 'success');
+          } else {
+            showToast(json.error || 'Already excluded', 'error');
+          }
+        } catch (error) {
+          showToast('Error adding excluded domain', 'error');
+        }
+      }
+
+      function editExcludedDomain(id, currentDomain, currentReason) {
+        const card = document.getElementById(`excluded-card-${id}`);
+        if (!card) return;
+
+        card.onmouseover = null;
+        card.onmouseout = null;
+        card.style.borderColor = 'var(--accent-color)';
+        card.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
+        card.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <input type="text" id="edit-domain-${id}" value="${currentDomain}"
+              placeholder="Domain"
+              style="width: 100%; padding: 8px 12px; border: 1px solid var(--accent-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 14px; font-weight: 600; outline: none; box-sizing: border-box;"
+              onkeypress="if (event.key === 'Enter') saveExcludedDomain(${id})" />
+            <input type="text" id="edit-reason-${id}" value="${currentReason}"
+              placeholder="Reason (optional)"
+              style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;"
+              onkeypress="if (event.key === 'Enter') saveExcludedDomain(${id})" />
+            <div style="display: flex; gap: 6px;">
+              <button onclick="saveExcludedDomain(${id})"
+                style="flex: 1; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border: none; border-radius: 8px; padding: 8px; cursor: pointer; font-size: 13px; color: white; font-weight: 600;">Save</button>
+              <button onclick="loadExcludedDomains()"
+                style="flex: 1; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; cursor: pointer; font-size: 13px; color: var(--text-secondary);">Cancel</button>
+            </div>
+          </div>
+        `;
+        document.getElementById(`edit-domain-${id}`).focus();
+      }
+
+      async function saveExcludedDomain(id) {
+        const domainInput = document.getElementById(`edit-domain-${id}`);
+        const reasonInput = document.getElementById(`edit-reason-${id}`);
+        const domain = domainInput.value.trim();
+
+        if (!domain) {
+          showToast('Domain cannot be empty', 'error');
+          return;
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/excluded-domains/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain, reason: reasonInput.value.trim() }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            loadExcludedDomains();
+            showToast(`Domain updated to "${json.data.domain}"`, 'success');
+          } else {
+            showToast(json.error || 'Failed to update domain', 'error');
+          }
+        } catch (error) {
+          showToast('Error updating excluded domain', 'error');
+        }
+      }
+
+      async function deleteExcludedDomain(id) {
+        if (!confirm('Remove this domain from the exclusion list?')) return;
+        try {
+          const res = await fetch(`${API_BASE}/excluded-domains/${id}`, { method: 'DELETE' });
+          const json = await res.json();
+          if (json.success) {
+            loadExcludedDomains();
+            showToast('Domain removed from exclusion list', 'success');
+          } else {
+            showToast(json.error || 'Failed to remove domain', 'error');
+          }
+        } catch (error) {
+          showToast('Error removing excluded domain', 'error');
+        }
+      }
+
+      // Executives Scraper Functions (original code below)
       async function checkExecutivesScraperStatus() {
         try {
           const res = await fetch(`${API_BASE}/executives/scraper/status`);

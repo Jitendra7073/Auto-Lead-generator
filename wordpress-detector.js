@@ -1312,7 +1312,7 @@ async function main() {
 
     // Track duplicates for logging
     const duplicates = [];
-    const newUrls = urls.filter((url) => {
+    let newUrls = urls.filter((url) => {
       const normalized = db.normalizeUrl(url);
       if (existingUrls.has(normalized)) {
         duplicates.push(url);
@@ -1321,8 +1321,21 @@ async function main() {
       return true;
     });
 
+    // Filter out URLs from excluded domains
+    const excludedDomains = db.getAllExcludedDomains().map(d => d.domain);
+    const domainExcluded = [];
+    if (excludedDomains.length > 0) {
+      newUrls = newUrls.filter(url => {
+        if (db.isUrlExcluded(url, excludedDomains)) {
+          domainExcluded.push(url);
+          return false;
+        }
+        return true;
+      });
+    }
+
     if (newUrls.length === 0) {
-      console.log("All URLs already exist in database. Nothing to scrape.");
+      console.log("All URLs already exist in database or are excluded. Nothing to scrape.");
       if (duplicates.length > 0) {
         console.log(
           `\nSkipped ${
@@ -1330,16 +1343,29 @@ async function main() {
           } duplicate URLs:\n  - ${duplicates.join("\n  - ")}`,
         );
       }
+      if (domainExcluded.length > 0) {
+        console.log(
+          `\n⛔ Excluded ${
+            domainExcluded.length
+          } URLs (blocked domains):\n  - ${domainExcluded.join("\n  - ")}`,
+        );
+      }
       return;
     }
 
     console.log(
-      `Found ${urls.length} total URLs, ${newUrls.length} new to check, ${duplicates.length} already exist.\n`,
+      `Found ${urls.length} total URLs, ${newUrls.length} new to check, ${duplicates.length} already exist, ${domainExcluded.length} excluded by domain.\n`,
     );
 
     if (duplicates.length > 0) {
       console.log("Skipped duplicates:");
       duplicates.forEach((url) => console.log(`  ✓ ${url}`));
+      console.log("");
+    }
+
+    if (domainExcluded.length > 0) {
+      console.log("⛔ Excluded by domain:");
+      domainExcluded.forEach((url) => console.log(`  ⛔ ${url}`));
       console.log("");
     }
 

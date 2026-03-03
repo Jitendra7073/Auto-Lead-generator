@@ -121,6 +121,20 @@ function initDatabase() {
     /* Ignore */
   }
 
+  // Create excluded_domains table for domain-level scraping exclusion
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS excluded_domains (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      domain TEXT NOT NULL UNIQUE,
+      reason TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_excluded_domains_domain ON excluded_domains(domain);
+  `);
+
   // Create contacts table (replaces emails/phones columns in sites table)
   db.exec(`
     CREATE TABLE IF NOT EXISTS contacts (
@@ -586,6 +600,140 @@ function deleteKeyword(id) {
     .run(id);
   db.close();
   return result.changes > 0;
+}
+
+// ============ EXCLUDED DOMAINS CRUD OPERATIONS ============
+
+/**
+ * Extract and normalize domain from a URL or raw domain string
+ * @param {string} input - URL or domain string
+ * @returns {string} - Normalized domain (e.g. "youtube.com")
+ */
+function extractDomain(input) {
+  try {
+    let domain = input.toLowerCase().trim();
+    // Remove protocol
+    domain = domain.replace(/^https?:\/\//, '');
+    // Remove www.
+    domain = domain.replace(/^www\./, '');
+    // Remove path, query, hash
+    domain = domain.split('/')[0].split('?')[0].split('#')[0];
+    return domain;
+  } catch (e) {
+    return input.toLowerCase().trim();
+  }
+}
+
+/**
+ * Get all excluded domains
+ * @returns {Array} - Array of excluded domain objects
+ */
+function getAllExcludedDomains() {
+  const db = initDatabase();
+  const domains = db
+    .prepare(`SELECT * FROM excluded_domains ORDER BY created_at DESC`)
+    .all();
+  db.close();
+  return domains;
+}
+
+/**
+ * Get excluded domain by ID
+ * @param {number} id - Domain ID
+ * @returns {Object|null} - Excluded domain or null
+ */
+function getExcludedDomainById(id) {
+  const db = initDatabase();
+  const domain = db
+    .prepare(`SELECT * FROM excluded_domains WHERE id = ?`)
+    .get(id);
+  db.close();
+  return domain || null;
+}
+
+/**
+ * Add a new excluded domain
+ * @param {string} domain - Domain to exclude (e.g. "youtube.com" or "https://www.youtube.com/")
+ * @param {string} reason - Optional reason for exclusion
+ * @returns {Object} - Created excluded domain
+ */
+function addExcludedDomain(domain, reason = '') {
+  const normalized = extractDomain(domain);
+  if (!normalized) {
+    throw new Error('Invalid domain');
+  }
+  const db = initDatabase();
+  const result = db
+    .prepare(`INSERT INTO excluded_domains (domain, reason) VALUES (?, ?)`)
+    .run(normalized, reason.trim() || null);
+  db.close();
+  return getExcludedDomainById(result.lastInsertRowid);
+}
+
+/**
+ * Update an excluded domain
+ * @param {number} id - Domain ID
+ * @param {string} domain - New domain value
+ * @param {string} reason - New reason
+ * @returns {Object|null} - Updated domain or null
+ */
+function updateExcludedDomain(id, domain, reason) {
+  const normalized = extractDomain(domain);
+  if (!normalized) {
+    throw new Error('Invalid domain');
+  }
+  const db = initDatabase();
+  db.prepare(`UPDATE excluded_domains SET domain = ?, reason = ? WHERE id = ?`)
+    .run(normalized, reason ? reason.trim() : null, id);
+  db.close();
+  return getExcludedDomainById(id);
+}
+
+/**
+ * Delete an excluded domain
+ * @param {number} id - Domain ID
+ * @returns {boolean} - True if deleted
+ */
+function deleteExcludedDomain(id) {
+  const db = initDatabase();
+  const result = db
+    .prepare(`DELETE FROM excluded_domains WHERE id = ?`)
+    .run(id);
+  db.close();
+  return result.changes > 0;
+}
+
+/**
+ * Check if a URL should be excluded based on stored excluded domains
+ * Matches exact domain and all subdomains (e.g. "youtube.com" blocks "m.youtube.com")
+ * @param {string} url - URL to check
+ * @param {Array<string>} excludedDomainList - Array of excluded domain strings
+ * @returns {boolean} - True if URL should be excluded
+ */
+function isUrlExcluded(url, excludedDomainList) {
+  const urlDomain = extractDomain(url);
+  return excludedDomainList.some(excluded => {
+    return urlDomain === excluded || urlDomain.endsWith('.' + excluded);
+  });
+}
+
+/**
+ * Filter an array of URLs, removing those matching excluded domains
+ * @param {Array<string>} urls - URLs to filter
+ * @returns {Object} - { allowed: string[], excluded: string[] }
+ */
+function filterExcludedUrls(urls) {
+  const excludedDomains = getAllExcludedDomains().map(d => d.domain);
+  const allowed = [];
+  const excluded = [];
+  for (const url of urls) {
+    if (isUrlExcluded(url, excludedDomains)) {
+      excluded.push(url);
+    } else {
+      allowed.push(url);
+    }
+  }
+  return { allowed, excluded };
 }
 
 /**
@@ -1805,6 +1953,15 @@ module.exports = {
   updateContact,
   deleteExecutive,
   updateExecutive,
+  // Excluded domains
+  getAllExcludedDomains,
+  getExcludedDomainById,
+  addExcludedDomain,
+  updateExcludedDomain,
+  deleteExcludedDomain,
+  isUrlExcluded,
+  filterExcludedUrls,
+  extractDomain,
   // Low-level SQLite wrappers (used by email-senders-templates-api.js & email-queue-worker.js)
   run,
   all,

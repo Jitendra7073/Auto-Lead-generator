@@ -188,6 +188,82 @@ app.use("/api/email", emailApiRouter);
 
 // ============ API ROUTES ============
 
+// =====================================================
+// EXCLUDED DOMAINS ENDPOINTS
+// =====================================================
+
+// Get all excluded domains
+app.get("/api/excluded-domains", (req, res) => {
+  try {
+    const domains = db.getAllExcludedDomains();
+    res.json({ success: true, data: domains });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Add excluded domain
+app.post("/api/excluded-domains", (req, res) => {
+  try {
+    const { domain, reason } = req.body;
+    if (!domain || domain.trim() === "") {
+      return res
+        .status(400)
+        .json({ success: false, error: "Domain is required" });
+    }
+    const result = db.addExcludedDomain(domain, reason || "");
+    res.json({ success: true, data: result });
+  } catch (error) {
+    if (error.message.includes("UNIQUE")) {
+      res.status(400).json({ success: false, error: "Domain already excluded" });
+    } else {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+});
+
+// Update excluded domain
+app.put("/api/excluded-domains/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const { domain, reason } = req.body;
+    if (!domain || domain.trim() === "") {
+      return res
+        .status(400)
+        .json({ success: false, error: "Domain is required" });
+    }
+    const result = db.updateExcludedDomain(parseInt(id), domain, reason || "");
+    if (!result) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Excluded domain not found" });
+    }
+    res.json({ success: true, data: result });
+  } catch (error) {
+    if (error.message.includes("UNIQUE")) {
+      res.status(400).json({ success: false, error: "Domain already excluded" });
+    } else {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+});
+
+// Delete excluded domain
+app.delete("/api/excluded-domains/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.deleteExcludedDomain(parseInt(id));
+    if (!result) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Excluded domain not found" });
+    }
+    res.json({ success: true, data: { deleted: result } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Get all keywords
 app.get("/api/keywords", (req, res) => {
   try {
@@ -1218,6 +1294,25 @@ async function runScraper(keywordId, keyword, maxSites = 20) {
       // Strictly enforce the maxSites limit on newUrls just in case the last Google page returned too many
       if (newUrls.length > maxSites) {
         newUrls = newUrls.slice(0, maxSites);
+      }
+
+      // Filter out URLs from excluded domains
+      const excludedDomains = db.getAllExcludedDomains().map(d => d.domain);
+      if (excludedDomains.length > 0) {
+        const domainExcluded = [];
+        newUrls = newUrls.filter(url => {
+          if (db.isUrlExcluded(url, excludedDomains)) {
+            domainExcluded.push(url);
+            return false;
+          }
+          return true;
+        });
+        if (domainExcluded.length > 0) {
+          console.log(
+            `[Scraper] ⛔ Excluded ${domainExcluded.length} URLs (blocked domains):`,
+          );
+          domainExcluded.forEach(u => console.log(`  ⛔ ${u}`));
+        }
       }
 
       console.log(
