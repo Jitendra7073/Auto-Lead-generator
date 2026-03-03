@@ -4,6 +4,7 @@ user-data-dir/
 # Database
 *.db
 *.json
+.env
 
 # Node modules
 node_modules/

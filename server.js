@@ -2074,8 +2074,8 @@ async function detectWordPressCookies(page) {
   return cookieIndicators;
 }
 
-// Mount email system routes
-app.use("/api/email", emailRouter);
+// Mount email system routes (already mounted above)
+// app.use("/api/email", emailRouter);
 
 // Start email queue worker
 worker.start();

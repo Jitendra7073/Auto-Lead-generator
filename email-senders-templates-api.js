@@ -146,6 +146,31 @@ function initializeEmailTables() {
       description:
         "Maximum minutes to wait after a full sender cycle (random between min-max)",
     },
+    // Follow-up gap settings (days between sequence steps)
+    {
+      key: "followup_gap_1",
+      value: "2",
+      label: "Gap before Follow-up 1 (days)",
+      description: "Days to wait after main email before sending follow-up 1",
+    },
+    {
+      key: "followup_gap_2",
+      value: "5",
+      label: "Gap before Follow-up 2 (days)",
+      description: "Days to wait after follow-up 1 before sending follow-up 2",
+    },
+    {
+      key: "followup_gap_3",
+      value: "5",
+      label: "Gap before Follow-up 3 (days)",
+      description: "Days to wait after follow-up 2 before sending follow-up 3",
+    },
+    {
+      key: "followup_gap_4",
+      value: "5",
+      label: "Gap before Follow-up 4 (days)",
+      description: "Days to wait after follow-up 3 before sending follow-up 4",
+    },
   ];
   const insertSetting = db.prepare(
     "INSERT OR IGNORE INTO email_settings (key, value, label, description) VALUES (?, ?, ?, ?)",
@@ -168,7 +193,82 @@ function initializeEmailTables() {
     // Column already exists
   }
 
+  // Add contact_id column to email_queue if not exists (for tracking sequence sends)
+  try {
+    db.run(`ALTER TABLE email_queue ADD COLUMN contact_id INTEGER`);
+  } catch (e) {
+    // Column already exists
+  }
+
+  // Add tag column to email_queue if not exists (for tracking tag-based sends)
+  try {
+    db.run(`ALTER TABLE email_queue ADD COLUMN tag TEXT`);
+  } catch (e) {
+    // Column already exists
+  }
+
+  // Add sequence_position column to email_queue (which step in the sequence)
+  try {
+    db.run(`ALTER TABLE email_queue ADD COLUMN sequence_position INTEGER`);
+  } catch (e) {
+    // Column already exists
+  }
+
+  // Sync follow-up gap settings based on current template counts
+  syncFollowupGapSettings();
+
   console.log("✅ Email system tables initialized");
+}
+
+/**
+ * Get max template count across all tag groups
+ * @returns {number} The maximum number of templates in any single tag group
+ */
+function getMaxSequenceCount() {
+  const templates = db.all(`SELECT tags FROM email_templates WHERE tags IS NOT NULL AND tags != ''`);
+  const tagCounts = {};
+  templates.forEach(t => {
+    if (t.tags) {
+      t.tags.split(',').forEach(tag => {
+        const trimmed = tag.trim();
+        if (trimmed) {
+          tagCounts[trimmed] = (tagCounts[trimmed] || 0) + 1;
+        }
+      });
+    }
+  });
+  const counts = Object.values(tagCounts);
+  return counts.length > 0 ? Math.max(...counts) : 1;
+}
+
+/**
+ * Sync follow-up gap settings in DB to match current max template sequence count.
+ * Creates missing gap settings and removes excess ones.
+ */
+function syncFollowupGapSettings() {
+  const maxSeq = getMaxSequenceCount();
+  const neededGaps = Math.max(maxSeq - 1, 0); // N templates need N-1 gaps
+
+  // Insert any missing gap settings
+  const insertStmt = db.prepare(
+    "INSERT OR IGNORE INTO email_settings (key, value, label, description) VALUES (?, ?, ?, ?)"
+  );
+  for (let i = 1; i <= neededGaps; i++) {
+    const key = `followup_gap_${i}`;
+    const label = i === 1
+      ? "Gap before Follow-up 1 (days)"
+      : `Gap before Follow-up ${i} (days)`;
+    const desc = i === 1
+      ? "Days to wait after main email before sending follow-up 1"
+      : `Days to wait after follow-up ${i - 1} before sending follow-up ${i}`;
+    insertStmt.run(key, i === 1 ? "2" : "5", label, desc);
+  }
+
+  // Remove excess gap settings that are beyond current max
+  db.run(
+    `DELETE FROM email_settings WHERE key LIKE 'followup_gap_%' AND CAST(REPLACE(key, 'followup_gap_', '') AS INTEGER) > ?`,
+    [neededGaps]
+  );
 }
 
 // Initialize tables on load
@@ -758,6 +858,20 @@ router.get("/templates/tags", (req, res) => {
 });
 
 /**
+ * GET /api/email/templates/max-sequence
+ * Returns the maximum template count across all tag groups
+ * Used by frontend to dynamically render follow-up gap settings
+ */
+router.get("/templates/max-sequence", (req, res) => {
+  try {
+    const maxSeq = getMaxSequenceCount();
+    res.json({ success: true, data: { maxSequence: maxSeq } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * GET /api/email/templates/next-sequence/:category
  * Get the next sequence number for a category (optionally filtered by tag)
  * Query params: ?tag=tagName for tag-based isolation
@@ -830,6 +944,125 @@ router.get("/templates/next-sequence/:category", (req, res) => {
       }
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * PUT /api/email/templates/reorder
+ * Bulk-update sequence_number for templates within a specific tag group.
+ * Body: { tag: string, orderedIds: number[] }
+ * orderedIds[0] → sequence_number=1, orderedIds[1] → sequence_number=2, etc.
+ * Only updates templates that actually belong to the given tag.
+ */
+router.put("/templates/reorder", (req, res) => {
+  try {
+    const { tag, orderedIds } = req.body;
+
+    if (!tag || typeof tag !== "string" || !tag.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: "Tag is required",
+      });
+    }
+
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "orderedIds must be a non-empty array of template IDs",
+      });
+    }
+
+    const trimmedTag = tag.trim();
+
+    // Validate: fetch all templates that match this tag
+    const tagTemplates = db.all(
+      `SELECT id, tags FROM email_templates WHERE tags LIKE ?`,
+      [`%${trimmedTag}%`]
+    );
+
+    // Build a set of valid IDs that truly belong to this tag
+    const validIds = new Set();
+    for (const t of tagTemplates) {
+      if (t.tags) {
+        const templateTags = t.tags.split(",").map((s) => s.trim().toLowerCase());
+        if (templateTags.includes(trimmedTag.toLowerCase())) {
+          validIds.add(t.id);
+        }
+      }
+    }
+
+    // Check for duplicate IDs
+    const uniqueIds = new Set(orderedIds);
+    if (uniqueIds.size !== orderedIds.length) {
+      return res.status(400).json({
+        success: false,
+        error: "Duplicate template IDs are not allowed",
+      });
+    }
+
+    // Check all provided IDs belong to this tag
+    const invalidIds = orderedIds.filter((id) => !validIds.has(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Template IDs [${invalidIds.join(", ")}] do not belong to tag "${trimmedTag}"`,
+      });
+    }
+
+    // Check count matches — sequence numbers must be exactly 1..N
+    if (orderedIds.length !== validIds.size) {
+      return res.status(400).json({
+        success: false,
+        error: `Expected ${validIds.size} template IDs for tag "${trimmedTag}", but received ${orderedIds.length}`,
+      });
+    }
+
+    // Use a transaction for atomicity — run individual updates in sequence
+    db.run("BEGIN TRANSACTION", []);
+
+    try {
+      for (let i = 0; i < orderedIds.length; i++) {
+        db.run(
+          `UPDATE email_templates SET sequence_number = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [i + 1, orderedIds[i]]
+        );
+      }
+      db.run("COMMIT", []);
+    } catch (txError) {
+      db.run("ROLLBACK", []);
+      throw txError;
+    }
+
+    // Return updated templates for this tag, sorted by new sequence
+    const updated = db.all(
+      `SELECT id, name, subject, category, tags, sequence_number, is_active, description
+       FROM email_templates WHERE tags LIKE ? ORDER BY sequence_number ASC`,
+      [`%${trimmedTag}%`]
+    );
+
+    // Filter to exact tag match
+    const filtered = updated.filter((t) => {
+      if (!t.tags) return false;
+      const tTags = t.tags.split(",").map((s) => s.trim().toLowerCase());
+      return tTags.includes(trimmedTag.toLowerCase());
+    });
+
+    console.log(`✅ Reordered ${orderedIds.length} templates in tag "${trimmedTag}"`);
+
+    // Sync gap settings after reorder
+    syncFollowupGapSettings();
+
+    res.json({
+      success: true,
+      message: `Reordered ${orderedIds.length} templates`,
+      data: filtered,
+    });
+  } catch (error) {
+    console.error(`❌ Reorder failed: ${error.message}`);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -976,6 +1209,9 @@ router.post("/templates", (req, res) => {
       [name, subject, html_content, text_content, description, category, tags, sequence_number],
     );
 
+    // Sync gap settings after adding a new template
+    syncFollowupGapSettings();
+
     res.json({
       success: true,
       data: {
@@ -1044,6 +1280,9 @@ router.put("/templates/:id", (req, res) => {
       ],
     );
 
+    // Sync gap settings after updating a template (tags may have changed)
+    syncFollowupGapSettings();
+
     res.json({
       success: true,
       message: "Template updated successfully",
@@ -1087,6 +1326,9 @@ router.delete("/templates/:id", (req, res) => {
     }
 
     db.run("DELETE FROM email_templates WHERE id = ?", [req.params.id]);
+
+    // Sync gap settings after deleting a template (may reduce max sequence)
+    syncFollowupGapSettings();
 
     res.json({
       success: true,
@@ -1839,6 +2081,410 @@ router.post("/queue/add-selected", (req, res) => {
   }
 });
 
+// ============================================
+// QUEUE BY TAG (AUTO-SEQUENCE)
+// ============================================
+
+/**
+ * POST /api/email/queue/add-by-tag
+ * Queue contacts using tag-based auto-sequencing.
+ * Queues ALL remaining templates in the sequence with scheduled_at dates
+ * based on follow-up gap settings.
+ * Body: { contact_ids: [1,2,3], tag: 'coupon' }
+ */
+router.post("/queue/add-by-tag", (req, res) => {
+  try {
+    const { contact_ids, tag } = req.body;
+
+    if (!contact_ids || !Array.isArray(contact_ids) || contact_ids.length === 0) {
+      return res.status(400).json({ success: false, error: "No contacts selected" });
+    }
+    if (!tag || typeof tag !== "string" || tag.trim() === "") {
+      return res.status(400).json({ success: false, error: "Tag is required" });
+    }
+
+    const trimmedTag = tag.trim();
+
+    // Get all active templates for this tag, ordered by sequence_number
+    const tagTemplates = db.all(
+      `SELECT * FROM email_templates 
+       WHERE is_active = 1 AND tags LIKE ? 
+       ORDER BY sequence_number ASC`,
+      [`%${trimmedTag}%`]
+    ).filter(t => {
+      // Exact tag match (tags is comma-separated)
+      const templateTags = (t.tags || '').split(',').map(s => s.trim().toLowerCase());
+      return templateTags.includes(trimmedTag.toLowerCase());
+    });
+
+    if (tagTemplates.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: `No active templates found for tag "${trimmedTag}"`,
+      });
+    }
+
+    const templateIds = tagTemplates.map(t => t.id);
+
+    // Fetch contacts by IDs
+    const placeholders = contact_ids.map(() => "?").join(",");
+    const contacts = db.all(
+      `SELECT id, value as email, site_id FROM contacts WHERE id IN (${placeholders}) AND type = 'email'`,
+      contact_ids
+    );
+
+    if (contacts.length === 0) {
+      return res.status(404).json({ success: false, error: "No valid email contacts found" });
+    }
+
+    // Load follow-up gap settings (in days) - dynamic based on DB entries
+    const gapSettings = {};
+    const settingsRows = db.all("SELECT key, value FROM email_settings WHERE key LIKE 'followup_gap_%' ORDER BY CAST(REPLACE(key, 'followup_gap_', '') AS INTEGER) ASC");
+    settingsRows.forEach(s => { gapSettings[s.key] = parseInt(s.value) || 0; });
+    
+    // Build gaps array dynamically: index 0 = main (immediate), index N = followup_gap_N
+    const gaps = [0]; // main = immediate
+    for (let i = 1; i <= Object.keys(gapSettings).length; i++) {
+      gaps.push(gapSettings[`followup_gap_${i}`] || (i === 1 ? 2 : 5));
+    }
+
+    // Create a campaign record
+    const campaignResult = db.run(
+      `INSERT INTO email_campaigns (name, template_id, target_type, status)
+       VALUES (?, ?, ?, ?)`,
+      [
+        `Tag: ${trimmedTag} - ${new Date().toLocaleDateString()}`,
+        tagTemplates[0].id,
+        "selected",
+        "queued",
+      ]
+    );
+    const campaignId = campaignResult.lastInsertRowid;
+
+    const insertQueue = db.prepare(
+      `INSERT INTO email_queue (campaign_id, recipient_email, subject, html_content, text_content, status, scheduled_at, contact_id, tag, sequence_position)
+       VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?)`
+    );
+    const insertLog = db.prepare(
+      `INSERT INTO email_send_log (contact_id, contact_email, template_id, campaign_id, send_type, status)
+       VALUES (?, ?, ?, ?, ?, 'queued')`
+    );
+
+    let queuedCount = 0;
+    let scheduledCount = 0;
+    let skippedCount = 0;
+    const details = [];
+
+    for (const contact of contacts) {
+      // Find which templates from this tag have already been sent/queued for this contact
+      const tplPlaceholders = templateIds.map(() => "?").join(",");
+      const sentTemplates = db.all(
+        `SELECT DISTINCT template_id FROM email_send_log 
+         WHERE contact_id = ? AND template_id IN (${tplPlaceholders})`,
+        [contact.id, ...templateIds]
+      );
+      const sentTemplateIds = new Set(sentTemplates.map(s => s.template_id));
+
+      // Get all remaining (unsent) templates in sequence order
+      const remainingTemplates = tagTemplates.filter(t => !sentTemplateIds.has(t.id));
+
+      if (remainingTemplates.length === 0) {
+        skippedCount++;
+        details.push({ email: contact.email, status: "skipped", reason: "all_sent" });
+        continue;
+      }
+
+      // Queue ALL remaining templates with appropriate scheduling
+      let cumulativeDays = 0;
+      remainingTemplates.forEach((template, idx) => {
+        const seqIndex = tagTemplates.indexOf(template);
+        const sendType = seqIndex === 0 ? "main" : `followup_${seqIndex}`;
+
+        // Calculate scheduled_at:
+        // First remaining template = immediate (no gap)
+        // Subsequent templates = cumulative gaps from the gap settings
+        let scheduledAt = null;
+        if (idx === 0) {
+          // First remaining template sends immediately
+          scheduledAt = null;
+        } else {
+          // Use the gap for this sequence position
+          const gapDays = gaps[seqIndex] || gaps[gaps.length - 1] || 5;
+          cumulativeDays += gapDays;
+          const schedDate = new Date();
+          schedDate.setDate(schedDate.getDate() + cumulativeDays);
+          scheduledAt = schedDate.toISOString();
+        }
+
+        // Get site data for template variable replacement
+        const siteData = getSiteDataForTemplate(contact.site_id);
+        const templateData = { ...siteData, email: contact.email };
+
+        const processedSubject = replaceTemplateVariables(template.subject, templateData);
+        const processedHtml = replaceTemplateVariables(template.html_content, templateData);
+        const processedText = replaceTemplateVariables(template.text_content || "", templateData);
+
+        insertQueue.run(
+          campaignId,
+          contact.email,
+          processedSubject,
+          processedHtml,
+          processedText,
+          scheduledAt,
+          contact.id,
+          trimmedTag,
+          seqIndex + 1
+        );
+        insertLog.run(contact.id, contact.email, template.id, campaignId, sendType);
+
+        if (scheduledAt) {
+          scheduledCount++;
+        } else {
+          queuedCount++;
+        }
+
+        details.push({
+          email: contact.email,
+          status: scheduledAt ? "scheduled" : "queued",
+          template: template.name,
+          sendType,
+          scheduledAt: scheduledAt || "immediate",
+          daysFromNow: cumulativeDays,
+        });
+      });
+    }
+
+    // Update campaign total
+    const totalQueued = queuedCount + scheduledCount;
+    db.run("UPDATE email_campaigns SET total_recipients = ? WHERE id = ?", [totalQueued, campaignId]);
+
+    // If nothing was queued, clean up the empty campaign
+    if (totalQueued === 0) {
+      db.run("DELETE FROM email_campaigns WHERE id = ?", [campaignId]);
+    }
+
+    res.json({
+      success: true,
+      message: `${queuedCount} emails queued immediately, ${scheduledCount} scheduled as follow-ups, ${skippedCount} skipped`,
+      data: {
+        campaign_id: totalQueued > 0 ? campaignId : null,
+        queued: queuedCount,
+        scheduled: scheduledCount,
+        skipped: skippedCount,
+        tag: trimmedTag,
+        total_templates: tagTemplates.length,
+        gaps: gaps.slice(1),
+        details,
+      },
+    });
+  } catch (error) {
+    console.error(`❌ Add-by-tag error: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// CONTACT EMAIL HISTORY & QUEUE CANCEL
+// ============================================
+
+/**
+ * GET /api/email/contact/:contactId/history
+ * Get full send history + queued/scheduled items for a specific contact.
+ * Returns a unified timeline of all email activity.
+ */
+router.get("/contact/:contactId/history", (req, res) => {
+  try {
+    const contactId = parseInt(req.params.contactId);
+    if (!contactId) {
+      return res.status(400).json({ success: false, error: "Invalid contact ID" });
+    }
+
+    // Get send log entries with template names
+    const sendLog = db.all(`
+      SELECT esl.id as log_id, esl.template_id, esl.send_type, esl.status, esl.sent_at,
+             esl.campaign_id,
+             et.name as template_name, et.tags as template_tags, et.sequence_number
+      FROM email_send_log esl
+      LEFT JOIN email_templates et ON esl.template_id = et.id
+      WHERE esl.contact_id = ?
+      ORDER BY esl.sent_at ASC
+    `, [contactId]);
+
+    // Get queue items for this contact (includes scheduled future items)
+    const queueItems = db.all(`
+      SELECT eq.id as queue_id, eq.subject, eq.status, eq.scheduled_at, eq.created_at,
+             eq.sent_at, eq.tag, eq.sequence_position, eq.campaign_id, eq.recipient_email
+      FROM email_queue eq
+      WHERE eq.contact_id = ?
+      ORDER BY eq.created_at ASC
+    `, [contactId]);
+
+    // Build unified timeline
+    const timeline = [];
+
+    // Add send log entries
+    sendLog.forEach(log => {
+      // Find matching queue item for richer data
+      const matchingQueue = queueItems.find(q =>
+        q.campaign_id === log.campaign_id && q.sequence_position === log.sequence_number
+      );
+
+      timeline.push({
+        type: "log",
+        logId: log.log_id,
+        queueId: matchingQueue?.queue_id || null,
+        templateId: log.template_id,
+        templateName: log.template_name || "Unknown Template",
+        templateTags: log.template_tags || "",
+        sequenceNumber: log.sequence_number || 0,
+        sendType: log.send_type,
+        status: matchingQueue?.status || log.status,
+        sentAt: matchingQueue?.sent_at || log.sent_at,
+        scheduledAt: matchingQueue?.scheduled_at || null,
+        createdAt: matchingQueue?.created_at || log.sent_at,
+        tag: matchingQueue?.tag || "",
+      });
+    });
+
+    // Add queue items that don't have a matching send log (shouldn't happen normally, but safety)
+    queueItems.forEach(q => {
+      const alreadyInTimeline = timeline.some(t => t.queueId === q.queue_id);
+      if (!alreadyInTimeline) {
+        timeline.push({
+          type: "queue_only",
+          logId: null,
+          queueId: q.queue_id,
+          templateId: null,
+          templateName: q.subject,
+          templateTags: q.tag || "",
+          sequenceNumber: q.sequence_position || 0,
+          sendType: null,
+          status: q.status,
+          sentAt: q.sent_at,
+          scheduledAt: q.scheduled_at,
+          createdAt: q.created_at,
+          tag: q.tag || "",
+        });
+      }
+    });
+
+    // Sort by created_at / scheduled_at
+    timeline.sort((a, b) => {
+      const dateA = new Date(a.scheduledAt || a.createdAt || a.sentAt || 0);
+      const dateB = new Date(b.scheduledAt || b.createdAt || b.sentAt || 0);
+      return dateA - dateB;
+    });
+
+    // Get contact info
+    const contact = db.get("SELECT id, value as email, site_id FROM contacts WHERE id = ?", [contactId]);
+
+    res.json({
+      success: true,
+      data: {
+        contact: contact || { id: contactId, email: "Unknown" },
+        timeline,
+        summary: {
+          total: timeline.length,
+          sent: timeline.filter(t => t.status === "sent").length,
+          queued: timeline.filter(t => t.status === "queued" && !t.scheduledAt).length,
+          scheduled: timeline.filter(t => t.status === "queued" && t.scheduledAt).length,
+          failed: timeline.filter(t => t.status === "failed").length,
+        },
+      },
+    });
+  } catch (error) {
+    console.error(`❌ Contact history error: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/email/queue/cancel/:queueId
+ * Cancel a specific queued/scheduled email.
+ * Removes from queue and send log.
+ */
+router.delete("/queue/cancel/:queueId", (req, res) => {
+  try {
+    const queueId = parseInt(req.params.queueId);
+    if (!queueId) {
+      return res.status(400).json({ success: false, error: "Invalid queue ID" });
+    }
+
+    // Get the queue item first
+    const item = db.get("SELECT * FROM email_queue WHERE id = ?", [queueId]);
+    if (!item) {
+      return res.status(404).json({ success: false, error: "Queue item not found" });
+    }
+
+    // Only allow cancelling queued items (not already sent)
+    if (item.status === "sent") {
+      return res.status(400).json({ success: false, error: "Cannot cancel already sent email" });
+    }
+
+    // Delete from queue
+    db.run("DELETE FROM email_queue WHERE id = ?", [queueId]);
+
+    // Delete matching send log entry (if exists)
+    if (item.contact_id && item.campaign_id && item.sequence_position) {
+      db.run(
+        `DELETE FROM email_send_log 
+         WHERE contact_id = ? AND campaign_id = ? 
+         AND send_type = (
+           SELECT CASE WHEN ? = 1 THEN 'main' ELSE 'followup_' || (? - 1) END
+         )`,
+        [item.contact_id, item.campaign_id, item.sequence_position, item.sequence_position]
+      );
+    }
+
+    // Update campaign total
+    if (item.campaign_id) {
+      db.run("UPDATE email_campaigns SET total_recipients = total_recipients - 1 WHERE id = ? AND total_recipients > 0",
+        [item.campaign_id]);
+    }
+
+    console.log(`✅ Cancelled queue item #${queueId}`);
+    res.json({ success: true, message: "Email removed from queue successfully" });
+  } catch (error) {
+    console.error(`❌ Cancel queue error: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/email/queue/send-now/:queueId
+ * Send a scheduled/queued email immediately by clearing its scheduled_at.
+ * The queue worker will pick it up on the next cycle.
+ */
+router.post("/queue/send-now/:queueId", (req, res) => {
+  try {
+    const queueId = parseInt(req.params.queueId);
+    if (!queueId) {
+      return res.status(400).json({ success: false, error: "Invalid queue ID" });
+    }
+
+    const item = db.get("SELECT * FROM email_queue WHERE id = ?", [queueId]);
+    if (!item) {
+      return res.status(404).json({ success: false, error: "Queue item not found" });
+    }
+
+    if (item.status === "sent") {
+      return res.status(400).json({ success: false, error: "Email already sent" });
+    }
+
+    // Clear scheduled_at so the worker picks it up immediately
+    db.run(
+      "UPDATE email_queue SET scheduled_at = NULL, status = 'queued' WHERE id = ?",
+      [queueId]
+    );
+
+    console.log(`✅ Queue item #${queueId} moved to send-now`);
+    res.json({ success: true, message: "Email moved to immediate queue — will send shortly" });
+  } catch (error) {
+    console.error(`❌ Send-now error: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 /**
  * GET /api/email/send-log
  * Get send log for all contacts (for the Sent Status column)
@@ -1847,10 +2493,16 @@ router.post("/queue/add-selected", (req, res) => {
 router.get("/send-log", (req, res) => {
   try {
     const logs = db.all(`
-      SELECT contact_id, contact_email, send_type, status, MAX(sent_at) as last_sent
-      FROM email_send_log
-      GROUP BY contact_id
-      ORDER BY sent_at DESC
+      SELECT esl.contact_id, esl.contact_email, esl.send_type, esl.status,
+             esl.sent_at as last_sent, et.name as template_name
+      FROM email_send_log esl
+      LEFT JOIN email_templates et ON esl.template_id = et.id
+      INNER JOIN (
+        SELECT contact_id, MAX(rowid) as max_rowid
+        FROM email_send_log
+        GROUP BY contact_id
+      ) latest ON esl.contact_id = latest.contact_id AND esl.rowid = latest.max_rowid
+      ORDER BY esl.sent_at DESC
     `);
     // Convert to a map for quick lookup
     const logMap = {};

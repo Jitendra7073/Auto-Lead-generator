@@ -1846,6 +1846,27 @@
               💾 Save Settings
             </button>
           </div>
+
+          <!-- Follow-up Sequence Gap Settings -->
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <div style="font-size: 15px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+              📅 Sequence Gaps
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 16px 0;">
+              Configure the delay (in days) between each step in an email sequence. When you queue a tag, follow-ups will be auto-scheduled based on these gaps.
+            </p>
+            <div id="followup-gaps-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+              <!-- Dynamically rendered by renderFollowupGaps() -->
+              <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+                Loading gap settings...
+              </div>
+            </div>
+            <div style="margin-top: 12px; text-align: right;">
+              <button class="action-btn btn-primary" onclick="saveQueueSettings()" style="padding: 8px 20px;">
+                💾 Save All Settings
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Emails Data Table -->
@@ -1862,6 +1883,16 @@
                 <option value="non-wordpress">Non-WordPress Sites</option>
                 <option value="not-sent">Not Sent Yet</option>
                 <option value="sent">Already Sent</option>
+              </select>
+              <select
+                class="filter-select"
+                id="emails-send-status-filter"
+                onchange="handleEmailFilter()"
+                style="min-width: 140px;">
+                <option value="all">All Statuses</option>
+                <option value="not_sent">📭 Not Sent</option>
+                <option value="main">📨 Main</option>
+                <!-- Follow-up options populated dynamically -->
               </select>
               <div class="search-box">
                 <input
@@ -2406,6 +2437,50 @@
               "
               id="template-categories">
               0
+            </div>
+          </div>
+        </div>
+
+        <!-- Tag Group Cards -->
+        <div
+          style="
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-bottom: 24px;
+          ">
+          <div
+            style="
+              padding: 20px;
+              background: var(--bg-hover);
+              border-bottom: 1px solid var(--border-light);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            ">
+            <div
+              style="
+                font-size: 16px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              ">
+              🏷️ Template Groups
+            </div>
+            <span style="font-size: 13px; color: var(--text-muted);">Click a tag to view & reorder its templates</span>
+          </div>
+          <div
+            id="tag-group-cards-container"
+            style="
+              padding: 20px;
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+              gap: 16px;
+            ">
+            <div style="padding: 20px; text-align: center; color: var(--text-muted); grid-column: 1 / -1;">
+              No tag groups yet. Add tags to your templates to see groups here.
             </div>
           </div>
         </div>
@@ -4157,6 +4232,106 @@
     </div>
 
     <!-- ========================================== -->
+    <!-- TAG GROUP REORDER MODAL -->
+    <!-- ========================================== -->
+    <div
+      id="tag-group-modal"
+      style="
+        display: none;
+        position: fixed;
+        z-index: 1050;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+      ">
+      <div
+        style="
+          background: var(--bg-card);
+          border-radius: var(--radius-lg);
+          width: 90%;
+          max-width: 750px;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        ">
+        <!-- Modal Header -->
+        <div
+          style="
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+          ">
+          <div>
+            <h3 style="font-size: 18px; font-weight: 600; margin: 0;" id="tag-group-modal-title">
+              Tag Group
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;" id="tag-group-modal-subtitle">
+              Drag to reorder or edit sequence numbers manually
+            </p>
+          </div>
+          <button
+            onclick="closeTagGroupModal()"
+            style="
+              background: none;
+              border: none;
+              font-size: 24px;
+              cursor: pointer;
+              color: var(--text-secondary);
+              padding: 4px 8px;
+            ">
+            &times;
+          </button>
+        </div>
+
+        <!-- Sortable List -->
+        <div
+          id="tag-group-list-container"
+          style="
+            padding: 16px 24px;
+            overflow-y: auto;
+            flex: 1;
+          ">
+          <div id="tag-group-list" style="display: flex; flex-direction: column; gap: 4px;">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div
+          style="
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-shrink: 0;
+          ">
+          <button
+            type="button"
+            onclick="closeTagGroupModal()"
+            class="btn btn-secondary">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onclick="saveTagGroupOrder()"
+            class="btn btn-primary"
+            id="save-tag-order-btn">
+            💾 Save Order
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
     <!-- AI TEMPLATE GENERATE MODAL -->
     <!-- ========================================== -->
     <div
@@ -5083,7 +5258,7 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- TEMPLATE SELECTOR MODAL -->
+    <!-- TEMPLATE SELECTOR MODAL (Tag-Based) -->
     <!-- ========================================== -->
     <div
       id="template-selector-modal"
@@ -5120,7 +5295,7 @@
             align-items: center;
           ">
           <h3 style="font-size: 18px; font-weight: 600; margin: 0">
-            📝 Select Email Template
+            🏷️ Select Email Sequence
           </h3>
           <button
             onclick="closeTemplateSelector()"
@@ -5135,48 +5310,118 @@
           </button>
         </div>
         <div style="padding: 24px">
-          <div style="margin-bottom: 16px">
-            <label
-              style="
-                display: block;
-                font-size: 13px;
-                font-weight: 500;
-                color: var(--text-secondary);
-                margin-bottom: 6px;
-              ">
-              Send Type
-            </label>
-            <select
-              id="ts-send-type"
-              style="
-                width: 100%;
-                padding: 10px 12px;
-                border: 1px solid var(--border-color);
-                border-radius: 10px;
-                font-size: 14px;
-                background: var(--bg-primary);
-                color: var(--text-primary);
-              ">
-              <option value="main">Main Email</option>
-              <option value="followup_1">Follow-up 1</option>
-              <option value="followup_2">Follow-up 2</option>
-              <option value="followup_3">Follow-up 3</option>
-              <option value="followup_4">Follow-up 4</option>
-            </select>
-          </div>
+          <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 16px 0;">
+            Pick a tag below. The system will auto-select the next unsent template in the sequence for each contact.
+          </p>
           <div
             id="ts-templates-list"
             style="display: flex; flex-direction: column; gap: 10px">
-            <!-- Templates loaded dynamically -->
             <div
               style="
                 text-align: center;
                 color: var(--text-muted);
                 padding: 20px;
               ">
-              Loading templates...
+              Loading tags...
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- CONTACT EMAIL HISTORY MODAL -->
+    <!-- ========================================== -->
+    <div
+      id="contact-history-modal"
+      style="
+        display: none;
+        position: fixed;
+        z-index: 1002;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+      ">
+      <div
+        style="
+          background: var(--bg-card);
+          border-radius: 16px;
+          width: 90%;
+          max-width: 640px;
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+          animation: fadeIn 0.2s ease;
+        ">
+        <!-- Header -->
+        <div
+          style="
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+          ">
+          <div>
+            <h3
+              id="ch-modal-title"
+              style="font-size: 18px; font-weight: 600; margin: 0">
+              📧 Email History
+            </h3>
+            <p id="ch-modal-email" style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;"></p>
+          </div>
+          <button
+            onclick="closeContactHistory()"
+            style="
+              background: none;
+              border: none;
+              font-size: 24px;
+              cursor: pointer;
+              color: var(--text-secondary);
+            ">
+            &times;
+          </button>
+        </div>
+        <!-- Summary bar -->
+        <div id="ch-summary-bar" style="
+          padding: 12px 24px;
+          border-bottom: 1px solid var(--border-color);
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+          background: var(--bg-secondary);
+          flex-shrink: 0;
+        "></div>
+        <!-- Body -->
+        <div
+          id="ch-modal-body"
+          style="padding: 20px 24px; overflow-y: auto; flex: 1">
+          <div
+            style="text-align: center; color: var(--text-muted); padding: 40px">
+            Loading...
+          </div>
+        </div>
+        <!-- Footer info -->
+        <div id="ch-modal-footer" style="
+          padding: 10px 24px;
+          border-top: 1px solid var(--border-color);
+          background: var(--bg-secondary);
+          display: none;
+          gap: 16px;
+          flex-wrap: wrap;
+          font-size: 11px;
+          color: var(--text-muted);
+          flex-shrink: 0;
+        ">
+          <span style="display: flex; align-items: center; gap: 4px;">🗑️ <b>Remove</b> — removes this email from the queue permanently</span>
+          <span style="display: flex; align-items: center; gap: 4px;">⚡ <b>Send Now</b> — skips the schedule and sends immediately</span>
         </div>
       </div>
     </div>
@@ -5822,29 +6067,36 @@
       async function loadEmails() {
         const search = document.getElementById("emails-search")?.value || "";
         const filter = document.getElementById("emails-filter")?.value || "all";
+        const sendStatusFilter = document.getElementById("emails-send-status-filter")?.value || "all";
         pageState.emails.filter = filter;
 
         try {
-          // Fetch emails and send log in parallel
-          const [emailsRes, logRes] = await Promise.all([
+          // Fetch emails, send log, and max sequence in parallel
+          const [emailsRes, logRes, maxSeqRes] = await Promise.all([
             fetch(
               `${API_BASE}/contacts/emails?search=${encodeURIComponent(
                 search,
               )}&page=${pageState.emails.page}&limit=50`,
             ),
             fetch(`${API_BASE}/email/send-log`),
+            fetch(`${API_BASE}/email/templates/max-sequence`),
           ]);
           const json = await emailsRes.json();
           const logJson = await logRes.json();
+          const maxSeqJson = await maxSeqRes.json();
 
           if (logJson.success) {
             emailSendLog = logJson.data;
           }
 
+          // Populate send-status filter dynamically
+          const maxSeq = maxSeqJson.success ? maxSeqJson.data.maxSequence : 1;
+          populateSendStatusFilter(maxSeq);
+
           if (json.success) {
             let emails = json.data.emails;
 
-            // Apply filter
+            // Apply type filter
             if (filter === "wordpress") {
               emails = emails.filter((e) => e.is_wordpress === 1);
             } else if (filter === "non-wordpress") {
@@ -5853,6 +6105,18 @@
               emails = emails.filter((e) => !emailSendLog[e.id]);
             } else if (filter === "sent") {
               emails = emails.filter((e) => emailSendLog[e.id]);
+            }
+
+            // Apply send-status filter
+            if (sendStatusFilter !== "all") {
+              if (sendStatusFilter === "not_sent") {
+                emails = emails.filter((e) => !emailSendLog[e.id]);
+              } else {
+                emails = emails.filter((e) => {
+                  const log = emailSendLog[e.id];
+                  return log && log.send_type === sendStatusFilter;
+                });
+              }
             }
 
             renderEmails(emails);
@@ -5868,43 +6132,66 @@
         }
       }
 
+      // Color palette for dynamic follow-up badges
+      const followupColors = [
+        { color: '#059669', bg: 'rgba(5, 150, 105, 0.1)' },    // main (green)
+        { color: '#667eea', bg: 'rgba(102, 126, 234, 0.1)' },  // followup_1 (indigo)
+        { color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },   // followup_2 (purple)
+        { color: '#d97706', bg: 'rgba(217, 119, 6, 0.1)' },    // followup_3 (amber)
+        { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.1)' },    // followup_4 (red)
+        { color: '#0891b2', bg: 'rgba(8, 145, 178, 0.1)' },    // followup_5 (cyan)
+        { color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.1)' },   // followup_6 (violet)
+        { color: '#ea580c', bg: 'rgba(234, 88, 12, 0.1)' },    // followup_7 (orange)
+        { color: '#0d9488', bg: 'rgba(13, 148, 136, 0.1)' },   // followup_8 (teal)
+        { color: '#be185d', bg: 'rgba(190, 24, 93, 0.1)' },    // followup_9 (pink)
+      ];
+
+      function getSendTypeStyle(sendType) {
+        if (sendType === 'main') return { label: 'Main', ...followupColors[0] };
+        const match = sendType.match(/^followup_(\d+)$/);
+        if (match) {
+          const idx = parseInt(match[1]);
+          const colorIdx = Math.min(idx, followupColors.length - 1);
+          return { label: `Follow-up ${idx}`, ...followupColors[colorIdx] };
+        }
+        return { label: sendType, color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
+      }
+
       function getSentStatusBadge(contactId) {
         const log = emailSendLog[contactId];
         if (!log)
           return '<span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(100,100,100,0.1); color: var(--text-muted);">Not Sent</span>';
-        const typeMap = {
-          main: {
-            label: "Main",
-            color: "#059669",
-            bg: "rgba(5, 150, 105, 0.1)",
-          },
-          followup_1: {
-            label: "Follow-up 1",
-            color: "#667eea",
-            bg: "rgba(102, 126, 234, 0.1)",
-          },
-          followup_2: {
-            label: "Follow-up 2",
-            color: "#8b5cf6",
-            bg: "rgba(139, 92, 246, 0.1)",
-          },
-          followup_3: {
-            label: "Follow-up 3",
-            color: "#d97706",
-            bg: "rgba(217, 119, 6, 0.1)",
-          },
-          followup_4: {
-            label: "Follow-up 4",
-            color: "#dc2626",
-            bg: "rgba(220, 38, 38, 0.1)",
-          },
-        };
-        const info = typeMap[log.send_type] || {
-          label: log.send_type,
-          color: "#6b7280",
-          bg: "rgba(107, 114, 128, 0.1)",
-        };
-        return `<span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: ${info.bg}; color: ${info.color}; font-weight: 600;">${info.label}</span>`;
+        const info = getSendTypeStyle(log.send_type);
+        const templateName = log.template_name ? escapeHtml(log.template_name) : info.label;
+        return `<span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; background: ${info.bg}; color: ${info.color}; font-weight: 600;" title="${templateName}">${info.label} — ${templateName}</span>`;
+      }
+
+      /**
+       * Dynamically populate the send-status filter dropdown based on max sequence count.
+       * Preserves the current selection if still valid.
+       */
+      let lastPopulatedMaxSeq = 0;
+      function populateSendStatusFilter(maxSeq) {
+        if (maxSeq === lastPopulatedMaxSeq) return; // already up to date
+        lastPopulatedMaxSeq = maxSeq;
+
+        const select = document.getElementById('emails-send-status-filter');
+        if (!select) return;
+
+        const currentVal = select.value;
+        let html = '<option value="all">All Statuses</option>';
+        html += '<option value="not_sent">📭 Not Sent</option>';
+        html += '<option value="main">📨 Main</option>';
+        for (let i = 1; i < maxSeq; i++) {
+          const emoji = i === maxSeq - 1 ? '🏁' : '📩';
+          html += `<option value="followup_${i}">${emoji} Follow-up ${i}</option>`;
+        }
+        select.innerHTML = html;
+
+        // Restore previous selection if it still exists
+        if ([...select.options].some(o => o.value === currentVal)) {
+          select.value = currentVal;
+        }
       }
 
       function renderEmails(emails) {
@@ -5940,7 +6227,8 @@
           }">${e.is_wordpress ? "WordPress" : "Non-WP"}</span></td>
           <td>${getSentStatusBadge(e.id)}</td>
           <td>${new Date(e.created_at).toLocaleDateString()}</td>
-          <td>
+          <td style="white-space: nowrap;">
+            <button class="action-btn" onclick="openContactHistory(${e.id}, '${escapeHtml(e.email)}')" style="padding: 4px 8px; font-size: 11px; background: rgba(59,130,246,0.1); color: #3b82f6; border: 1px solid rgba(59,130,246,0.2); border-radius: 6px; cursor: pointer;" title="View email history">ℹ️</button>
             <button class="action-btn btn-primary" onclick='editContact(${JSON.stringify(
               e,
             ).replace(
@@ -6793,24 +7081,6 @@
             (template) => {
               // Determine sequence display (e.g., "Follow-up #2")
               const categoryDisplay = categoryNames[template.category] || template.category;
-              let sequenceDisplay = categoryDisplay;
-              
-              // First check if we have a stored sequence_number
-              if (template.sequence_number && template.sequence_number > 0) {
-                sequenceDisplay = `${categoryDisplay} #${template.sequence_number}`;
-              } else {
-                // Fallback: check if name contains sequence number
-                const seqMatch = template.name.match(/#(\d+)$/);
-                if (seqMatch) {
-                  sequenceDisplay = `${categoryDisplay} #${seqMatch[1]}`;
-                } else {
-                  // Fallback: check for old format like "Follow-up-2"
-                  const oldMatch = template.name.match(/-(\d+)$/);
-                  if (oldMatch) {
-                    sequenceDisplay = `${categoryDisplay} #${oldMatch[1]}`;
-                  }
-                }
-              }
               
               return `
           <tr style="border-bottom: 1px solid var(--border-light);">
@@ -6848,7 +7118,7 @@
                 font-size: 12px;
                 font-weight: 500;
                 color: var(--text-secondary);
-              ">${escapeHtml(sequenceDisplay)}</span>
+              ">${escapeHtml(categoryDisplay)}</span>
             </td>
             <td style="padding: 12px 16px;">
               <div style="display: flex; gap: 6px;">
@@ -7638,7 +7908,455 @@
       loadTemplates = async function() {
         await originalLoadTemplates();
         await loadAvailableTags();
+        renderTagGroupCards();
       };
+
+      // ============================================
+      // TAG GROUP CARDS & REORDER MODAL
+      // ============================================
+      let tagGroupCurrentTag = null;
+      let tagGroupTemplates = [];
+      let draggedItem = null;
+
+      /**
+       * Render tag group cards from the currently loaded templates data.
+       * Groups templates by tag and shows a card per tag.
+       */
+      function renderTagGroupCards() {
+        const container = document.getElementById('tag-group-cards-container');
+        if (!container) return;
+
+        // Collect all templates from the table to build groups
+        // We'll re-fetch from the allAvailableTags + template data
+        fetch(`${API_BASE}/email/templates`)
+          .then(res => res.json())
+          .then(json => {
+            if (!json.success) return;
+            const templates = json.data;
+
+            // Group by tags
+            const tagMap = {};
+            for (const t of templates) {
+              if (!t.tags) continue;
+              const tags = t.tags.split(',').map(s => s.trim()).filter(s => s);
+              for (const tag of tags) {
+                const key = tag.toLowerCase();
+                if (!tagMap[key]) {
+                  tagMap[key] = { displayName: tag, templates: [] };
+                }
+                tagMap[key].templates.push(t);
+              }
+            }
+
+            const tagKeys = Object.keys(tagMap).sort();
+
+            if (tagKeys.length === 0) {
+              container.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: var(--text-muted); grid-column: 1 / -1;">
+                  No tag groups yet. Add tags to your templates to see groups here.
+                </div>
+              `;
+              return;
+            }
+
+            // Color palette for cards
+            const gradients = [
+              'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+              'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+              'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+              'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
+            ];
+
+            container.innerHTML = tagKeys.map((key, idx) => {
+              const group = tagMap[key];
+              const count = group.templates.length;
+              const activeCount = group.templates.filter(t => t.is_active === 1 || t.is_active === '1' || t.is_active === true).length;
+              const gradient = gradients[idx % gradients.length];
+              // Show first 3 template names as preview
+              const preview = group.templates
+                .sort((a, b) => (a.sequence_number || 0) - (b.sequence_number || 0))
+                .slice(0, 3)
+                .map(t => t.name)
+                .join(', ');
+              const moreCount = count > 3 ? ` +${count - 3} more` : '';
+
+              return `
+                <div
+                  onclick="openTagGroupModal('${escapeHtml(group.displayName)}')"
+                  style="
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-light);
+                    border-radius: var(--radius-lg);
+                    padding: 20px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    position: relative;
+                    overflow: hidden;
+                  "
+                  onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)';"
+                  onmouseout="this.style.transform='none'; this.style.boxShadow='none';"
+                >
+                  <div style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: ${gradient};
+                  "></div>
+                  <div style="
+                    display: inline-block;
+                    padding: 4px 12px;
+                    background: ${gradient};
+                    color: white;
+                    border-radius: 16px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    margin-bottom: 12px;
+                  ">🏷️ ${escapeHtml(group.displayName)}</div>
+                  <div style="
+                    display: flex;
+                    gap: 16px;
+                    margin-bottom: 10px;
+                  ">
+                    <div>
+                      <div style="font-size: 22px; font-weight: 700; color: var(--text-primary);">${count}</div>
+                      <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Templates</div>
+                    </div>
+                    <div>
+                      <div style="font-size: 22px; font-weight: 700; color: var(--success-color);">${activeCount}</div>
+                      <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Active</div>
+                    </div>
+                  </div>
+                  <div style="
+                    font-size: 12px;
+                    color: var(--text-muted);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  ">${escapeHtml(preview)}${moreCount}</div>
+                  <div style="
+                    margin-top: 10px;
+                    font-size: 11px;
+                    color: var(--accent-blue);
+                    font-weight: 500;
+                  ">Click to view & reorder →</div>
+                </div>
+              `;
+            }).join('');
+          })
+          .catch(err => {
+            console.error('Error rendering tag group cards:', err);
+          });
+      }
+
+      /**
+       * Open the tag group modal to view and reorder templates for a specific tag
+       */
+      async function openTagGroupModal(tag) {
+        tagGroupCurrentTag = tag;
+        document.getElementById('tag-group-modal-title').textContent = `🏷️ "${tag}" Templates`;
+        document.getElementById('tag-group-modal-subtitle').textContent =
+          `Drag to reorder or edit sequence numbers manually • ${tag}`;
+
+        try {
+          const res = await fetch(`${API_BASE}/email/templates?tag=${encodeURIComponent(tag)}`);
+          const json = await res.json();
+
+          if (!json.success) {
+            showToast('Failed to load templates for this tag', 'error');
+            return;
+          }
+
+          // Filter to exact tag match and sort by sequence_number
+          tagGroupTemplates = json.data
+            .filter(t => {
+              if (!t.tags) return false;
+              const tags = t.tags.split(',').map(s => s.trim().toLowerCase());
+              return tags.includes(tag.toLowerCase());
+            })
+            .sort((a, b) => (a.sequence_number || 0) - (b.sequence_number || 0));
+
+          renderTagGroupList();
+          document.getElementById('tag-group-modal').style.display = 'flex';
+        } catch (error) {
+          showToast('Error loading tag group', 'error');
+          console.error(error);
+        }
+      }
+
+      function closeTagGroupModal() {
+        document.getElementById('tag-group-modal').style.display = 'none';
+        tagGroupCurrentTag = null;
+        tagGroupTemplates = [];
+        draggedItem = null;
+      }
+
+      /**
+       * Render the sortable list inside the tag group modal
+       */
+      function renderTagGroupList() {
+        const list = document.getElementById('tag-group-list');
+
+        if (tagGroupTemplates.length === 0) {
+          list.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+              No templates in this tag group.
+            </div>
+          `;
+          return;
+        }
+
+        const categoryNames = {
+          'general': 'General',
+          'outreach': 'Cold Outreach',
+          'welcome': 'Welcome',
+          'promotion': 'Promotion',
+          'followup': 'Follow-up'
+        };
+
+        list.innerHTML = tagGroupTemplates.map((template, index) => {
+          const catDisplay = categoryNames[template.category] || template.category;
+          return `
+            <div
+              class="tag-group-item"
+              draggable="true"
+              data-id="${template.id}"
+              data-index="${index}"
+              ondragstart="onTagDragStart(event, ${index})"
+              ondragover="onTagDragOver(event, ${index})"
+              ondragenter="onTagDragEnter(event)"
+              ondragleave="onTagDragLeave(event)"
+              ondrop="onTagDrop(event, ${index})"
+              ondragend="onTagDragEnd(event)"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 16px;
+                background: var(--bg-card);
+                border: 2px solid var(--border-light);
+                border-radius: var(--radius-md);
+                cursor: grab;
+                transition: border-color 0.15s, background 0.15s, transform 0.15s;
+                user-select: none;
+              "
+              onmouseover="this.style.borderColor='var(--accent-blue)'"
+              onmouseout="this.style.borderColor='var(--border-light)'"
+            >
+              <!-- Drag Handle -->
+              <div style="
+                font-size: 18px;
+                color: var(--text-muted);
+                cursor: grab;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+              " title="Drag to reorder">⣿</div>
+
+              <!-- Sequence Number Input -->
+              <input
+                type="number"
+                min="1"
+                max="${tagGroupTemplates.length}"
+                value="${index + 1}"
+                data-template-id="${template.id}"
+                onchange="onSequenceManualChange(this, ${index})"
+                style="
+                  width: 50px;
+                  padding: 6px 8px;
+                  text-align: center;
+                  font-size: 14px;
+                  font-weight: 600;
+                  background: var(--bg-secondary);
+                  border: 1px solid var(--border-medium);
+                  border-radius: var(--radius-md);
+                  color: var(--text-primary);
+                  flex-shrink: 0;
+                "
+                title="Edit sequence number"
+              />
+
+              <!-- Template Info -->
+              <div style="flex: 1; min-width: 0;">
+                <div style="
+                  font-weight: 600;
+                  font-size: 14px;
+                  color: var(--text-primary);
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                ">${escapeHtml(template.name)}</div>
+                <div style="
+                  font-size: 12px;
+                  color: var(--text-muted);
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  margin-top: 2px;
+                ">${escapeHtml(template.subject)}</div>
+              </div>
+
+              <!-- Category Badge -->
+              <span style="
+                padding: 4px 10px;
+                background: var(--bg-secondary);
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 500;
+                color: var(--text-secondary);
+                flex-shrink: 0;
+              ">${escapeHtml(catDisplay)}</span>
+
+              <!-- Status -->
+              <span style="
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: ${template.is_active ? '#059669' : '#9ca3af'};
+                flex-shrink: 0;
+              " title="${template.is_active ? 'Active' : 'Inactive'}"></span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // --- Drag & Drop Handlers ---
+
+      function onTagDragStart(e, index) {
+        draggedItem = index;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', index);
+        // Make the dragged item semi-transparent
+        setTimeout(() => {
+          e.target.style.opacity = '0.4';
+          e.target.style.transform = 'scale(0.98)';
+        }, 0);
+      }
+
+      function onTagDragOver(e, index) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      }
+
+      function onTagDragEnter(e) {
+        e.preventDefault();
+        const item = e.currentTarget;
+        if (item.classList) {
+          item.style.borderColor = 'var(--accent-blue)';
+          item.style.background = 'var(--bg-hover)';
+        }
+      }
+
+      function onTagDragLeave(e) {
+        const item = e.currentTarget;
+        item.style.borderColor = 'var(--border-light)';
+        item.style.background = 'var(--bg-card)';
+      }
+
+      function onTagDrop(e, dropIndex) {
+        e.preventDefault();
+        const item = e.currentTarget;
+        item.style.borderColor = 'var(--border-light)';
+        item.style.background = 'var(--bg-card)';
+
+        if (draggedItem === null || draggedItem === dropIndex) return;
+
+        // Reorder the array
+        const moved = tagGroupTemplates.splice(draggedItem, 1)[0];
+        tagGroupTemplates.splice(dropIndex, 0, moved);
+
+        draggedItem = null;
+        renderTagGroupList();
+      }
+
+      function onTagDragEnd(e) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'none';
+        draggedItem = null;
+        // Reset all items
+        document.querySelectorAll('.tag-group-item').forEach(item => {
+          item.style.borderColor = 'var(--border-light)';
+          item.style.background = 'var(--bg-card)';
+        });
+      }
+
+      /**
+       * Handle manual sequence number change.
+       * Moves the template to the new position.
+       */
+      function onSequenceManualChange(input, currentIndex) {
+        const maxPos = tagGroupTemplates.length;
+        let newPos = parseInt(input.value, 10);
+
+        if (isNaN(newPos) || newPos < 1) {
+          newPos = 1;
+          showToast(`Minimum sequence number is 1`, 'warning');
+        }
+        if (newPos > maxPos) {
+          showToast(`Only ${maxPos} templates in this group. Max sequence is ${maxPos}.`, 'warning');
+          newPos = maxPos;
+        }
+
+        // Update the input to show the clamped value
+        input.value = newPos;
+
+        // Convert 1-based to 0-based index
+        const newIndex = newPos - 1;
+
+        if (newIndex === currentIndex) return;
+
+        // Move the item
+        const moved = tagGroupTemplates.splice(currentIndex, 1)[0];
+        tagGroupTemplates.splice(newIndex, 0, moved);
+        renderTagGroupList();
+      }
+
+      /**
+       * Save the current order to the backend
+       */
+      async function saveTagGroupOrder() {
+        if (!tagGroupCurrentTag || tagGroupTemplates.length === 0) return;
+
+        const btn = document.getElementById('save-tag-order-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '⏳ Saving...';
+        btn.disabled = true;
+
+        const orderedIds = tagGroupTemplates.map(t => t.id);
+
+        try {
+          const res = await fetch(`${API_BASE}/email/templates/reorder`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tag: tagGroupCurrentTag,
+              orderedIds: orderedIds,
+            }),
+          });
+
+          const json = await res.json();
+
+          if (json.success) {
+            showToast(`Reordered ${orderedIds.length} templates in "${tagGroupCurrentTag}"`, 'success');
+            closeTagGroupModal();
+            // Refresh everything
+            loadTemplates();
+          } else {
+            showToast(json.error || 'Failed to save order', 'error');
+          }
+        } catch (error) {
+          showToast('Error saving order', 'error');
+          console.error(error);
+        } finally {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }
+      }
 
       // ============================================
       // EMAIL CAMPAIGNS FUNCTIONS
@@ -7942,10 +8660,64 @@
             panel.style.display === "none" ? "block" : "none";
       }
 
+      // Track current max gap count for dynamic rendering
+      let currentMaxGapCount = 0;
+
+      /**
+       * Render follow-up gap input fields dynamically based on max sequence count
+       * @param {number} maxSeq - Maximum template count across all tag groups
+       * @param {Object} gapValues - Optional object of {followup_gap_N: value} to pre-fill
+       */
+      function renderFollowupGaps(maxSeq, gapValues = {}) {
+        const container = document.getElementById('followup-gaps-container');
+        if (!container) return;
+
+        const neededGaps = Math.max((maxSeq || 1) - 1, 0);
+        currentMaxGapCount = neededGaps;
+
+        if (neededGaps === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px; grid-column: 1 / -1;">
+              <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;">📭</div>
+              No follow-up gaps needed — add templates with tags to configure sequence timing.
+            </div>`;
+          return;
+        }
+
+        let html = '';
+        for (let i = 1; i <= neededGaps; i++) {
+          const label = i === 1 
+            ? 'After Main → Follow-up 1' 
+            : `After F/U ${i - 1} → Follow-up ${i}`;
+          const defaultVal = gapValues[`followup_gap_${i}`] || (i === 1 ? 2 : 5);
+          html += `
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 4px;">
+                ${label}
+              </label>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="number" id="setting-followup-gap-${i}" min="1" max="90" value="${defaultVal}" style="
+                  width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;
+                  font-size: 14px; background: var(--bg-primary); color: var(--text-primary);" />
+                <span style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">days</span>
+              </div>
+            </div>`;
+        }
+        container.innerHTML = html;
+      }
+
       async function loadQueueSettings() {
         try {
-          const res = await fetch(`${API_BASE}/email/settings`);
-          const json = await res.json();
+          // Fetch settings and max sequence count in parallel
+          const [settingsRes, maxSeqRes] = await Promise.all([
+            fetch(`${API_BASE}/email/settings`),
+            fetch(`${API_BASE}/email/templates/max-sequence`),
+          ]);
+          const json = await settingsRes.json();
+          const maxSeqJson = await maxSeqRes.json();
+          
+          const maxSeq = maxSeqJson.success ? maxSeqJson.data.maxSequence : 1;
+          
           if (json.success && json.data) {
             const d = json.data;
             if (d.per_email_delay)
@@ -7957,9 +8729,24 @@
             if (d.cycle_cooldown_max)
               document.getElementById("setting-cycle-max").value =
                 d.cycle_cooldown_max.value;
+
+            // Build gap values object from settings
+            const gapValues = {};
+            for (const [key, setting] of Object.entries(d)) {
+              if (key.startsWith('followup_gap_')) {
+                gapValues[key] = setting.value;
+              }
+            }
+
+            // Render dynamic gap inputs
+            renderFollowupGaps(maxSeq, gapValues);
+          } else {
+            // Still render gaps even if settings fail
+            renderFollowupGaps(maxSeq);
           }
         } catch (e) {
           console.error("Error loading queue settings:", e);
+          renderFollowupGaps(1); // Fallback: no gaps
         }
       }
 
@@ -7972,6 +8759,19 @@
           cycle_cooldown_max:
             document.getElementById("setting-cycle-max").value,
         };
+        
+        // Dynamically collect all follow-up gap values
+        for (let i = 1; i <= currentMaxGapCount; i++) {
+          const el = document.getElementById(`setting-followup-gap-${i}`);
+          if (el) {
+            const val = parseInt(el.value);
+            if (val < 1 || val > 90) {
+              showToast(`Follow-up gap ${i} must be between 1 and 90 days`, "error");
+              return;
+            }
+            data[`followup_gap_${i}`] = el.value;
+          }
+        }
         try {
           const res = await fetch(`${API_BASE}/email/settings`, {
             method: "PUT",
@@ -8101,11 +8901,28 @@
         }
         templateSelectorAction = action;
 
-        // Fetch templates
+        // Fetch templates and gap settings in parallel
         try {
-          const res = await fetch(`${API_BASE}/email/templates`);
-          const json = await res.json();
+          const [templatesRes, settingsRes] = await Promise.all([
+            fetch(`${API_BASE}/email/templates`),
+            fetch(`${API_BASE}/email/settings`),
+          ]);
+          const json = await templatesRes.json();
+          const settingsJson = await settingsRes.json();
           const container = document.getElementById("ts-templates-list");
+
+          // Parse gap settings dynamically (not limited to 4)
+          const gapSettings = {};
+          if (settingsJson.success && settingsJson.data) {
+            for (const [key, setting] of Object.entries(settingsJson.data)) {
+              if (key.startsWith('followup_gap_')) {
+                const idx = parseInt(key.replace('followup_gap_', ''));
+                if (!isNaN(idx)) {
+                  gapSettings[idx] = parseInt(setting.value) || (idx === 1 ? 2 : 5);
+                }
+              }
+            }
+          }
 
           if (!json.success || !json.data || json.data.length === 0) {
             container.innerHTML = `
@@ -8131,32 +8948,70 @@
                 </div>
               `;
             } else {
-              container.innerHTML = activeTemplates
-                .map(
-                  (t) => `
-                <div onclick="selectTemplate(${t.id})" style="
-                  padding: 14px 16px;
-                  border: 1px solid var(--border-color);
-                  border-radius: 10px;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                  background: var(--bg-primary);
-                " onmouseover="this.style.borderColor='#667eea'; this.style.background='rgba(102,126,234,0.05)'"
-                   onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-primary)'">
-                  <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${escapeHtml(
-                    t.name,
-                  )}</div>
-                  <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${escapeHtml(
-                    t.subject || "",
-                  )}</div>
-                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                    <span style="padding: 2px 6px; border-radius: 4px; background: rgba(102,126,234,0.1); color: #667eea;">${
-                      t.category || "general"
-                    }</span>
-                  </div>
-                </div>
-              `,
-                )
+              // Group templates by tag
+              const tagGroups = {};
+              activeTemplates.forEach((t) => {
+                const tags = (t.tags || '').split(',').map(s => s.trim()).filter(Boolean);
+                if (tags.length === 0) tags.push('untagged');
+                tags.forEach(tag => {
+                  if (!tagGroups[tag]) tagGroups[tag] = [];
+                  tagGroups[tag].push(t);
+                });
+              });
+
+              // Sort templates within each tag by sequence_number
+              Object.keys(tagGroups).forEach(tag => {
+                tagGroups[tag].sort((a, b) => (a.sequence_number || 0) - (b.sequence_number || 0));
+              });
+
+              const tagColors = ['#667eea', '#28a745', '#e83e8c', '#fd7e14', '#6f42c1', '#20c997', '#17a2b8'];
+
+              container.innerHTML = Object.entries(tagGroups)
+                .map(([tag, templates], idx) => {
+                  const color = tagColors[idx % tagColors.length];
+
+                  // Build timeline showing template + gap schedule
+                  let cumulativeDays = 0;
+                  const timelineItems = templates.map((t, i) => {
+                    let dayLabel = '';
+                    if (i === 0) {
+                      dayLabel = '<span style="color: #28a745; font-weight: 600;">Now</span>';
+                    } else {
+                      cumulativeDays += (gapSettings[i] || 5);
+                      dayLabel = `<span style="color: var(--text-muted);">+${cumulativeDays} days</span>`;
+                    }
+                    return `<div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="min-width: 20px; text-align: right; font-weight: 600; color: ${color};">${i + 1}.</span>
+                      <span style="flex: 1;">${escapeHtml(t.name)}</span>
+                      ${dayLabel}
+                    </div>`;
+                  }).join('');
+
+                  return `
+                    <div onclick="selectTag('${escapeHtml(tag)}')" style="
+                      padding: 16px 18px;
+                      border: 2px solid ${color}30;
+                      border-radius: 12px;
+                      cursor: pointer;
+                      transition: all 0.2s ease;
+                      background: ${color}08;
+                    " onmouseover="this.style.borderColor='${color}'; this.style.background='${color}15'; this.style.transform='translateY(-1px)'"
+                       onmouseout="this.style.borderColor='${color}30'; this.style.background='${color}08'; this.style.transform='none'">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <div style="font-weight: 700; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                          <span style="background: ${color}; color: white; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">🏷️ ${escapeHtml(tag)}</span>
+                        </div>
+                        <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">${templates.length} template${templates.length > 1 ? 's' : ''} in sequence</span>
+                      </div>
+                      <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.8; display: flex; flex-direction: column; gap: 2px;">
+                        ${timelineItems}
+                      </div>
+                      <div style="margin-top: 12px; font-size: 11px; color: ${color}; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                        ▶ Click to auto-schedule full sequence
+                      </div>
+                    </div>
+                  `;
+                })
                 .join("");
             }
           }
@@ -8173,27 +9028,24 @@
           "none";
       }
 
-      async function selectTemplate(templateId) {
-        const sendType = document.getElementById("ts-send-type").value;
+      async function selectTag(tag) {
         closeTemplateSelector();
 
         if (templateSelectorAction === "start" && selectedEmailIds.size === 0) {
-          // Start queue without adding new emails (just process existing queue)
           showToast("Starting queue processor...", "success");
-          // The queue worker auto-processes; this is a UI cue
           refreshEmailQueueStats();
           return;
         }
 
-        // Add selected emails to queue
+        // Add selected emails to queue using tag-based auto-sequencing
         try {
-          const res = await fetch(`${API_BASE}/email/queue/add-selected`, {
+          showToast("Assigning templates by sequence...", "info");
+          const res = await fetch(`${API_BASE}/email/queue/add-by-tag`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contact_ids: Array.from(selectedEmailIds),
-              template_id: templateId,
-              send_type: sendType,
+              tag: tag,
             }),
           });
           const json = await res.json();
@@ -8221,11 +9073,253 @@
         }
       }
 
+      // Keep legacy selectTemplate for backward compatibility
+      async function selectTemplate(templateId) {
+        const sendTypeEl = document.getElementById("ts-send-type");
+        const sendType = sendTypeEl ? sendTypeEl.value : "main";
+        closeTemplateSelector();
+
+        if (templateSelectorAction === "start" && selectedEmailIds.size === 0) {
+          showToast("Starting queue processor...", "success");
+          refreshEmailQueueStats();
+          return;
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/email/queue/add-selected`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contact_ids: Array.from(selectedEmailIds),
+              template_id: templateId,
+              send_type: sendType,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            showToast(json.message, "success");
+            selectedEmailIds.clear();
+            updateSelectedCount();
+            document
+              .querySelectorAll(".email-row-check")
+              .forEach((cb) => (cb.checked = false));
+            const selectAll = document.getElementById("email-select-all");
+            const headerCheck = document.getElementById("email-header-check");
+            if (selectAll) selectAll.checked = false;
+            if (headerCheck) headerCheck.checked = false;
+            loadEmails();
+            refreshEmailQueueStats();
+          } else {
+            showToast(json.error || "Failed to queue emails", "error");
+          }
+        } catch (e) {
+          showToast("Error adding to queue", "error");
+        }
+      }
+
       function pauseEmailQueue() {
         showToast(
           "Queue paused (server-side pause not yet implemented)",
           "success",
         );
+      }
+
+      // ============================================
+      // CONTACT EMAIL HISTORY MODAL
+      // ============================================
+
+      function closeContactHistory() {
+        document.getElementById("contact-history-modal").style.display = "none";
+      }
+
+      async function openContactHistory(contactId, email) {
+        const modal = document.getElementById("contact-history-modal");
+        const titleEl = document.getElementById("ch-modal-title");
+        const emailEl = document.getElementById("ch-modal-email");
+        const summaryBar = document.getElementById("ch-summary-bar");
+        const bodyEl = document.getElementById("ch-modal-body");
+
+        titleEl.textContent = "📧 Email History";
+        emailEl.textContent = email;
+        summaryBar.innerHTML = "";
+        bodyEl.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">⏳ Loading...</div>';
+        modal.style.display = "flex";
+
+        try {
+          const res = await fetch(`${API_BASE}/email/contact/${contactId}/history`);
+          const json = await res.json();
+
+          if (!json.success) {
+            bodyEl.innerHTML = `<div style="text-align: center; color: #dc2626; padding: 40px;">❌ ${json.error}</div>`;
+            return;
+          }
+
+          const { timeline, summary } = json.data;
+
+          // Render summary bar
+          const summaryItems = [
+            { label: "Sent", value: summary.sent, color: "#059669", icon: "✅" },
+            { label: "Queued", value: summary.queued, color: "#3b82f6", icon: "📤" },
+            { label: "Scheduled", value: summary.scheduled, color: "#f59e0b", icon: "📅" },
+            { label: "Failed", value: summary.failed, color: "#dc2626", icon: "❌" },
+          ];
+          summaryBar.innerHTML = summaryItems
+            .map(s => `
+              <div style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                <span>${s.icon}</span>
+                <span style="font-weight: 600; color: ${s.color};">${s.value}</span>
+                <span style="color: var(--text-muted);">${s.label}</span>
+              </div>
+            `).join("");
+
+          // Build timeline
+          if (timeline.length === 0) {
+            bodyEl.innerHTML = `
+              <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;">📭</div>
+                <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">No Email History</div>
+                <div style="font-size: 13px; color: var(--text-muted);">No emails have been sent or queued for this contact yet.</div>
+              </div>
+            `;
+            return;
+          }
+
+          bodyEl.innerHTML = `<div style="display: flex; flex-direction: column; gap: 0;">${
+            timeline.map((item, idx) => {
+              const isLast = idx === timeline.length - 1;
+              let statusIcon, statusColor, statusLabel, dateStr, actionHtml = "";
+
+              if (item.status === "sent") {
+                statusIcon = "✅";
+                statusColor = "#059669";
+                statusLabel = "Sent";
+                dateStr = item.sentAt ? new Date(item.sentAt).toLocaleString() : "—";
+              } else if (item.status === "failed") {
+                statusIcon = "❌";
+                statusColor = "#dc2626";
+                statusLabel = "Failed";
+                dateStr = item.sentAt ? new Date(item.sentAt).toLocaleString() : "—";
+              } else if (item.scheduledAt) {
+                statusIcon = "📅";
+                statusColor = "#f59e0b";
+                const schedDate = new Date(item.scheduledAt);
+                const now = new Date();
+                const diffDays = Math.ceil((schedDate - now) / (1000 * 60 * 60 * 24));
+                statusLabel = diffDays > 0 ? `Scheduled (in ${diffDays}d)` : "Ready to send";
+                dateStr = schedDate.toLocaleString();
+                if (item.queueId) {
+                  actionHtml = `<div style="display: flex; gap: 6px;">
+                    <button onclick="sendNowQueueItem(${item.queueId}, ${contactId}, '${escapeHtml(email)}')" style="
+                      padding: 3px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;
+                      background: rgba(5,150,105,0.1); color: #059669; border: 1px solid rgba(5,150,105,0.2);
+                      font-weight: 500; transition: all 0.15s;
+                    " onmouseover="this.style.background='rgba(5,150,105,0.2)'" onmouseout="this.style.background='rgba(5,150,105,0.1)'">⚡ Send Now</button>
+                    <button onclick="cancelQueueItem(${item.queueId}, ${contactId}, '${escapeHtml(email)}')" style="
+                      padding: 3px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;
+                      background: rgba(220,38,38,0.1); color: #dc2626; border: 1px solid rgba(220,38,38,0.2);
+                      font-weight: 500; transition: all 0.15s;
+                    " onmouseover="this.style.background='rgba(220,38,38,0.2)'" onmouseout="this.style.background='rgba(220,38,38,0.1)'">🗑️ Remove</button>
+                  </div>`;
+                }
+              } else {
+                statusIcon = "📤";
+                statusColor = "#3b82f6";
+                statusLabel = "Queued";
+                dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : "—";
+                if (item.queueId) {
+                  actionHtml = `<div style="display: flex; gap: 6px;">
+                    <button onclick="cancelQueueItem(${item.queueId}, ${contactId}, '${escapeHtml(email)}')" style="
+                      padding: 3px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;
+                      background: rgba(220,38,38,0.1); color: #dc2626; border: 1px solid rgba(220,38,38,0.2);
+                      font-weight: 500; transition: all 0.15s;
+                    " onmouseover="this.style.background='rgba(220,38,38,0.2)'" onmouseout="this.style.background='rgba(220,38,38,0.1)'">🗑️ Remove</button>
+                  </div>`;
+                }
+              }
+
+              // Send type label (dynamic, not hardcoded)
+              const typeStyle = item.sendType ? getSendTypeStyle(item.sendType) : null;
+              const typeLabel = typeStyle ? typeStyle.label : (item.sequenceNumber ? `Step ${item.sequenceNumber}` : "—");
+
+              // Tag badge
+              const tagBadge = item.tag ? `<span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(102,126,234,0.1); color: #667eea; font-weight: 500;">🏷️ ${escapeHtml(item.tag)}</span>` : "";
+
+              return `
+                <div style="display: flex; gap: 12px; position: relative;">
+                  <!-- Timeline line + dot -->
+                  <div style="display: flex; flex-direction: column; align-items: center; width: 24px; flex-shrink: 0;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: ${statusColor}; border: 2px solid ${statusColor}40; flex-shrink: 0; margin-top: 14px; z-index: 1;"></div>
+                    ${!isLast ? `<div style="width: 2px; flex: 1; background: var(--border-color); margin: 2px 0;"></div>` : ""}
+                  </div>
+                  <!-- Content -->
+                  <div style="flex: 1; padding: 10px 14px; margin-bottom: ${isLast ? '0' : '4px'}; border-radius: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 16px;">${statusIcon}</span>
+                        <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${escapeHtml(item.templateName)}</span>
+                      </div>
+                      ${actionHtml}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap;">
+                      <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: ${statusColor}15; color: ${statusColor}; font-weight: 600;">${typeLabel}</span>
+                      <span style="font-size: 11px; color: ${statusColor}; font-weight: 500;">${statusLabel}</span>
+                      ${tagBadge}
+                      <span style="font-size: 11px; color: var(--text-muted); margin-left: auto;">${dateStr}</span>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join("")
+          }</div>`;
+
+          // Show footer if there are any actionable items (queued/scheduled)
+          const hasActionable = timeline.some(t => t.status !== 'sent' && t.status !== 'failed' && t.queueId);
+          const footerEl = document.getElementById('ch-modal-footer');
+          if (footerEl) footerEl.style.display = hasActionable ? 'flex' : 'none';
+
+        } catch (e) {
+          bodyEl.innerHTML = `<div style="text-align: center; color: #dc2626; padding: 40px;">❌ Error loading history</div>`;
+          console.error("Error loading contact history:", e);
+        }
+      }
+
+      async function cancelQueueItem(queueId, contactId, email) {
+        if (!confirm("Remove this email from the queue? This action cannot be undone.")) return;
+        try {
+          const res = await fetch(`${API_BASE}/email/queue/cancel/${queueId}`, { method: "DELETE" });
+          const json = await res.json();
+          if (json.success) {
+            showToast("Email removed from queue", "success");
+            // Refresh the modal
+            openContactHistory(contactId, email);
+            // Refresh queue stats and emails table
+            refreshEmailQueueStats();
+            loadEmails();
+          } else {
+            showToast(json.error || "Failed to remove", "error");
+          }
+        } catch (e) {
+          showToast("Error removing email from queue", "error");
+        }
+      }
+
+      async function sendNowQueueItem(queueId, contactId, email) {
+        if (!confirm("Send this email now? It will skip the scheduled date and send immediately.")) return;
+        try {
+          const res = await fetch(`${API_BASE}/email/queue/send-now/${queueId}`, { method: "POST" });
+          const json = await res.json();
+          if (json.success) {
+            showToast("Email moved to immediate queue — will send shortly ⚡", "success");
+            openContactHistory(contactId, email);
+            refreshEmailQueueStats();
+            loadEmails();
+          } else {
+            showToast(json.error || "Failed to send now", "error");
+          }
+        } catch (e) {
+          console.error("Send now error:", e);
+          showToast("Could not reach server. Make sure it's running.", "error");
+        }
       }
 
       // ============================================
