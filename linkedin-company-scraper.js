@@ -102,10 +102,10 @@ class LinkedInCompanyScraper {
       }
 
       // Build the executives search URL directly
-      // Pattern: {companyUrl}/people/?keywords=founder%2C%20co-founder%2C%20ceo
+      // Pattern: {companyUrl}/people/?keywords=founder%2C%20co-founder%2C%20ceo%2C%20cto
       const peopleUrl =
         companyUrl.replace(/\/$/, "") +
-        "/people/?keywords=founder%2C%20co-founder%2C%20ceo";
+        "/people/?keywords=founder%2C%20co-founder%2C%20ceo%2C%20cto";
       console.log(`👥 Direct URL: ${peopleUrl}`);
 
       // Navigate directly to the filtered people page
@@ -156,9 +156,12 @@ class LinkedInCompanyScraper {
       console.log(`📊 Page info:`, pageInfo);
 
       // Extract executives from the people page
-      const executives = await this.extractExecutives();
+      const allExecutives = await this.extractExecutives();
+      console.log(`📋 Raw matches found: ${allExecutives.length}`);
 
-      console.log(`✅ Found ${executives.length} executives`);
+      // Post-process: select exactly up to 3 founders + 1 CEO + 1 CTO
+      const executives = this.selectStructuredExecutives(allExecutives);
+      console.log(`✅ Selected ${executives.length} structured executives (3 Founders + 1 CEO + 1 CTO)`);
 
       // Save to database
       const saved = await this.saveExecutivesToDatabase(
@@ -183,6 +186,62 @@ class LinkedInCompanyScraper {
         error: error.message,
       };
     }
+  }
+
+  /**
+   * Post-process raw executives list to select structured roles:
+   * - Up to 3 Founders (priority: founder > co-founder > owner)
+   * - 1 CEO
+   * - 1 CTO
+   * Same person can appear in both founder and CEO/CTO slots.
+   * @param {Array} allExecutives - Raw extracted executives
+   * @returns {Array} - Filtered executives (max 5)
+   */
+  selectStructuredExecutives(allExecutives) {
+    const selected = [];
+
+    // 1. Select CEO (first match)
+    const ceo = allExecutives.find((e) => e.roleCategory === "ceo");
+    if (ceo) {
+      selected.push(ceo);
+      console.log(`   👔 CEO: ${ceo.name || "Unknown"}`);
+    }
+
+    // 2. Select CTO (first match)
+    const cto = allExecutives.find((e) => e.roleCategory === "cto");
+    if (cto) {
+      selected.push(cto);
+      console.log(`   💻 CTO: ${cto.name || "Unknown"}`);
+    }
+
+    // 3. Select up to 3 founders with priority: founder > co-founder > owner
+    const founderPriority = ["founder", "co-founder", "owner"];
+    const founders = [];
+
+    for (const role of founderPriority) {
+      if (founders.length >= 3) break;
+      const matches = allExecutives.filter((e) => e.roleCategory === role);
+      for (const match of matches) {
+        if (founders.length >= 3) break;
+        // Allow same person in both founder + CEO/CTO slots (don't deduplicate)
+        founders.push(match);
+        console.log(`   🏗️ Founder ${founders.length}: ${match.name || "Unknown"} (${match.roleCategory})`);
+      }
+    }
+
+    // Add founders that aren't already selected (by profileUrl)
+    for (const founder of founders) {
+      const alreadyAdded = selected.some(
+        (s) => s.profileUrl === founder.profileUrl
+      );
+      if (!alreadyAdded) {
+        selected.push(founder);
+      }
+    }
+
+    console.log(`   📊 Structure: ${founders.length} Founder(s), ${ceo ? 1 : 0} CEO, ${cto ? 1 : 0} CTO`);
+
+    return selected;
   }
 
   /**
@@ -245,6 +304,8 @@ class LinkedInCompanyScraper {
         "cofounder",
         "ceo",
         "chief executive officer",
+        "cto",
+        "chief technology officer",
         "owner",
         "president",
         "managing director",
@@ -403,6 +464,11 @@ class LinkedInCompanyScraper {
               fullHeadline.includes("chief executive")
             ) {
               roleCategory = "ceo";
+            } else if (
+              fullHeadline.includes("cto") ||
+              fullHeadline.includes("chief technology")
+            ) {
+              roleCategory = "cto";
             } else if (fullHeadline.includes("president")) {
               roleCategory = "president";
             } else if (fullHeadline.includes("owner")) {

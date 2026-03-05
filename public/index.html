@@ -148,6 +148,162 @@
         box-shadow: 0 8px 25px rgba(56, 239, 125, 0.4);
       }
 
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      /* Export Dropdown */
+      .export-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+
+      .export-btn {
+        padding: 14px 28px;
+        background: var(--accent-gradient);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px var(--accent-glow);
+      }
+
+      .export-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px var(--accent-glow);
+      }
+
+      .export-btn .arrow {
+        font-size: 10px;
+        transition: transform 0.3s ease;
+      }
+
+      .export-dropdown.open .export-btn .arrow {
+        transform: rotate(180deg);
+      }
+
+      .export-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 200px;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px);
+        transition: all 0.25s ease;
+        z-index: 200;
+        overflow: hidden;
+      }
+
+      .export-dropdown.open .export-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .export-menu-header {
+        padding: 12px 16px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .export-menu-item {
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+      }
+
+      .export-menu-item:hover {
+        background: #f1f5f9;
+      }
+
+      .export-menu-item:not(:last-child) {
+        border-bottom: 1px solid #f1f5f9;
+      }
+
+      .export-menu-item .icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+
+      .export-menu-item .icon.csv {
+        background: linear-gradient(135deg, #11998e20, #38ef7d20);
+        color: #11998e;
+      }
+
+      .export-menu-item .icon.pdf {
+        background: linear-gradient(135deg, #f093fb20, #f5576c20);
+        color: #f5576c;
+      }
+
+      .export-menu-item .icon.json {
+        background: linear-gradient(135deg, #4facfe20, #00f2fe20);
+        color: #4facfe;
+      }
+
+      .export-menu-item .label {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .export-menu-item .label span:first-child {
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .export-menu-item .label span:last-child {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+
+      .export-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 150;
+      }
+
+      .export-dropdown.open ~ .export-overlay,
+      .export-overlay.active {
+        display: block;
+      }
+
       /* Navigation */
       .nav-container {
         position: fixed;
@@ -777,6 +933,16 @@
         border: 1px solid rgba(56, 239, 125, 0.3);
       }
 
+      .role-cto {
+        background: linear-gradient(
+          135deg,
+          rgba(249, 115, 22, 0.15),
+          rgba(234, 88, 12, 0.15)
+        );
+        color: #ea580c;
+        border: 1px solid rgba(249, 115, 22, 0.3);
+      }
+
       .role-president {
         background: linear-gradient(
           135deg,
@@ -813,6 +979,77 @@
       .profile-link:hover {
         color: #764ba2;
         text-decoration: underline;
+      }
+
+      /* Structured Executives Table */
+      .exec-cell {
+        min-width: 140px;
+        vertical-align: top;
+      }
+      .exec-cell-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .exec-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-primary);
+      }
+      .exec-headline {
+        font-size: 11px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+      }
+      .exec-profile-link {
+        font-size: 11px;
+        color: #667eea;
+        text-decoration: none;
+      }
+      .exec-profile-link:hover {
+        text-decoration: underline;
+      }
+      .exec-empty {
+        color: var(--text-muted);
+        font-style: italic;
+        font-size: 13px;
+      }
+      .exec-company-cell {
+        min-width: 180px;
+      }
+      .exec-company-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-primary);
+      }
+      .exec-site-url {
+        font-size: 11px;
+        color: var(--text-muted);
+        word-break: break-all;
+      }
+      .exec-view-toggle {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .exec-view-btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border-light);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .exec-view-btn.active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        border-color: transparent;
       }
 
       @keyframes pulse {
@@ -1073,6 +1310,15 @@
           font-size: 12px;
         }
 
+        .export-btn {
+          padding: 10px 16px;
+          font-size: 12px;
+        }
+
+        .export-menu {
+          min-width: 180px;
+        }
+
         .main-content {
           margin-top: 260px;
         }
@@ -1090,10 +1336,48 @@
         <div class="logo-icon">🔍</div>
         <span>WP Detector Pro</span>
       </div>
-      <button class="run-all-btn" onclick="startAllScrapers()">
-        <span>▶</span>
-        <span>Run All</span>
-      </button>
+      <div class="header-actions">
+        <div class="export-dropdown" id="exportDropdown">
+          <button class="export-btn" onclick="toggleExportMenu(event)">
+            <span>📥</span>
+            <span>Export All</span>
+            <span class="arrow">▼</span>
+          </button>
+          <div class="export-menu">
+            <div class="export-menu-header">Export Format</div>
+            <button class="export-menu-item" onclick="exportAllData('csv')">
+              <div class="icon csv">📄</div>
+              <div class="label">
+                <span>CSV Spreadsheet</span>
+                <span>Compatible with Excel, Google Sheets</span>
+              </div>
+            </button>
+            <button class="export-menu-item" onclick="exportAllData('pdf')">
+              <div class="icon pdf">📕</div>
+              <div class="label">
+                <span>PDF Report</span>
+                <span>Formatted report with all data</span>
+              </div>
+            </button>
+            <button class="export-menu-item" onclick="exportAllData('json')">
+              <div class="icon json">{ }</div>
+              <div class="label">
+                <span>JSON Data</span>
+                <span>Raw data for developers</span>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="export-overlay" id="exportOverlay" onclick="closeExportMenu()"></div>
+        <button class="run-all-btn" onclick="startAllScrapers()">
+          <span>▶</span>
+          <span>Run All</span>
+        </button>
+        <button class="run-all-btn" onclick="deleteAllData()" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
+          <span>🗑️</span>
+          <span>Delete All</span>
+        </button>
+      </div>
     </header>
 
     <!-- Navigation -->
@@ -1215,7 +1499,7 @@
                 color: var(--text-muted);
                 line-height: 1.5;
               ">
-              ✨ Automatically extracts founders, CEOs, and executives from
+              ✨ Automatically extracts top 3 founders, CEO, and CTO from
               LinkedIn company pages found during WordPress detection.
             </p>
           </div>
@@ -2066,54 +2350,102 @@
       <!-- Executives Tab -->
       <div id="tab-executives" class="tab-content">
         <div class="content-card">
-          <div class="table-title">👔 Company Executives Database</div>
-          <div class="table-controls">
-            <select
-              class="filter-select"
-              id="executives-filter"
-              onchange="filterExecutives()">
-              <option value="all">All Executives</option>
-              <option value="founder">Founders</option>
-              <option value="co-founder">Co-Founders</option>
-              <option value="ceo">CEOs</option>
-              <option value="president">Presidents</option>
-              <option value="owner">Owners</option>
-              <option value="managing director">Managing Directo</option>
-            </select>
-            <input
-              type="text"
-              id="executives-search"
-              class="search-input"
-              placeholder="Search executives..."
-              onkeyup="searchExecutives(event)" />
+          <div class="table-title" style="margin: 0 0 10px 0;">👔 Company Executives Database</div>
+
+          <!-- View Toggle -->
+          <div class="exec-view-toggle">
+            <button class="exec-view-btn active" id="btn-structured-view" onclick="switchExecutivesView('structured')">📊 Structured View</button>
+            <button class="exec-view-btn" id="btn-flat-view" onclick="switchExecutivesView('flat')">📋 Flat View</button>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Headline</th>
-                <th>Company</th>
-                <th>LinkedIn Profile</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="executives-table">
-              <tr>
-                <td colspan="5" class="loading-state">
-                  <div class="loading-spinner"></div>
-                  Loading...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div
-            class="pagination"
-            id="executives-pagination"
-            style="display: none">
-            <button onclick="prevPage('executives')">← Prev</button>
-            <span id="executives-page-info">Page 1 of 1</span>
-            <button onclick="nextPage('executives')">Next →</button>
+
+          <!-- STRUCTURED VIEW (default) -->
+          <div id="executives-structured-view">
+            <div class="table-controls">
+              <input
+                type="text"
+                id="structured-executives-search"
+                class="search-input"
+                placeholder="Search by company or executive name..."
+                onkeyup="searchStructuredExecutives(event)" />
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Company</th>
+                  <th>Founder 1</th>
+                  <th>Founder 2</th>
+                  <th>Founder 3</th>
+                  <th>CEO</th>
+                  <th>CTO</th>
+                </tr>
+              </thead>
+              <tbody id="structured-executives-table">
+                <tr>
+                  <td colspan="6" class="loading-state">
+                    <div class="loading-spinner"></div>
+                    Loading...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pagination" id="structured-executives-pagination" style="display: none">
+              <button onclick="prevPage('structured-executives')">← Prev</button>
+              <span id="structured-executives-page-info">Page 1 of 1</span>
+              <button onclick="nextPage('structured-executives')">Next →</button>
+            </div>
+          </div>
+
+          <!-- FLAT VIEW (legacy) -->
+          <div id="executives-flat-view" style="display: none;">
+            <div class="table-controls">
+              <select
+                class="filter-select"
+                id="executives-filter"
+                onchange="filterExecutives()">
+                <option value="all">All Executives</option>
+                <option value="founder">Founders</option>
+                <option value="co-founder">Co-Founders</option>
+                <option value="ceo">CEOs</option>
+                <option value="cto">CTOs</option>
+                <option value="president">Presidents</option>
+                <option value="owner">Owners</option>
+                <option value="managing director">Managing Directors</option>
+              </select>
+              <input
+                type="text"
+                id="executives-search"
+                class="search-input"
+                placeholder="Search executives..."
+                onkeyup="searchExecutives(event)" />
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Headline</th>
+                  <th>Company</th>
+                  <th>LinkedIn Profile</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="executives-table">
+                <tr>
+                  <td colspan="6" class="loading-state">
+                    <div class="loading-spinner"></div>
+                    Loading...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div
+              class="pagination"
+              id="executives-pagination"
+              style="display: none">
+              <button onclick="prevPage('executives')">← Prev</button>
+              <span id="executives-page-info">Page 1 of 1</span>
+              <button onclick="nextPage('executives')">Next →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -5784,7 +6116,10 @@
         phones: { page: 1, totalPages: 1, filter: "all" },
         linkedin: { page: 1, totalPages: 1, filter: "all" },
         executives: { page: 1, totalPages: 1, filter: "all" },
+        'structured-executives': { page: 1, totalPages: 1 },
       };
+
+      let executivesViewMode = 'structured'; // 'structured' or 'flat'
 
       function switchTab(tab) {
         currentTab = tab;
@@ -5812,7 +6147,10 @@
           loadQueueSettings();
         } else if (tab === "phones") loadPhones();
         else if (tab === "linkedin") loadLinkedin();
-        else if (tab === "executives") loadExecutives();
+        else if (tab === "executives") {
+          if (executivesViewMode === 'structured') loadStructuredExecutives();
+          else loadExecutives();
+        }
         else if (tab === "senders") loadSenders();
         else if (tab === "templates") loadTemplates();
         else if (tab === "campaigns") {
@@ -6478,9 +6816,16 @@
             renderExecutives(json.data.executives);
             pageState.executives.totalPages = json.data.pagination.totalPages;
             updatePagination("executives");
+          } else {
+            document.getElementById("executives-table").innerHTML =
+              '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">👔</div>No executives data available</td></tr>';
+            document.getElementById("executives-pagination").style.display = "none";
           }
         } catch (error) {
           console.error("Error loading executives:", error);
+          document.getElementById("executives-table").innerHTML =
+            '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">👔</div>No executives data available.<br><span style="font-size:12px;color:var(--text-muted)">Run the LinkedIn scraper to extract founders, CEO & CTO from company pages.</span></td></tr>';
+          document.getElementById("executives-pagination").style.display = "none";
         }
       }
 
@@ -6488,7 +6833,7 @@
         const tbody = document.getElementById("executives-table");
         if (executives.length === 0) {
           tbody.innerHTML =
-            '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">👔</div>No executives found yet</td></tr>';
+            '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">👔</div>No executives found yet.<br><span style="font-size:12px;color:var(--text-muted)">Run the LinkedIn scraper to extract founders, CEO & CTO from company pages.</span></td></tr>';
           document.getElementById("executives-pagination").style.display =
             "none";
           return;
@@ -6538,6 +6883,99 @@
         if (event.key === "Enter") {
           pageState.executives.page = 1;
           loadExecutives();
+        }
+      }
+
+      // ============ STRUCTURED EXECUTIVES VIEW ============
+
+      function switchExecutivesView(mode) {
+        executivesViewMode = mode;
+        document.getElementById('btn-structured-view').classList.toggle('active', mode === 'structured');
+        document.getElementById('btn-flat-view').classList.toggle('active', mode === 'flat');
+        document.getElementById('executives-structured-view').style.display = mode === 'structured' ? '' : 'none';
+        document.getElementById('executives-flat-view').style.display = mode === 'flat' ? '' : 'none';
+
+        if (mode === 'structured') loadStructuredExecutives();
+        else loadExecutives();
+      }
+
+      async function loadStructuredExecutives() {
+        const tbody = document.getElementById('structured-executives-table');
+        const search = document.getElementById('structured-executives-search')?.value || '';
+        const page = pageState['structured-executives'].page;
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/executives/structured?search=${encodeURIComponent(search)}&page=${page}&limit=20`
+          );
+          const json = await res.json();
+          if (json.success) {
+            renderStructuredExecutives(json.data.companies);
+            pageState['structured-executives'].totalPages = json.data.pagination.totalPages;
+            updatePagination('structured-executives');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">👔</div>No executives data available</td></tr>';
+            document.getElementById('structured-executives-pagination').style.display = 'none';
+          }
+        } catch (error) {
+          console.error('Error loading structured executives:', error);
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">👔</div>No executives data available.<br><span style="font-size:12px;color:var(--text-muted)">Run the LinkedIn scraper to extract founders, CEO & CTO from company pages.</span></td></tr>';
+          document.getElementById('structured-executives-pagination').style.display = 'none';
+        }
+      }
+
+      function renderExecCell(exec) {
+        if (!exec) {
+          return '<span class="exec-empty">—</span>';
+        }
+        const name = exec.name || 'Unknown';
+        const headline = exec.headline || '';
+        const profileUrl = exec.profile_url || '#';
+        const truncatedHeadline = headline.length > 40 ? headline.substring(0, 37) + '...' : headline;
+        return `
+          <div class="exec-cell-content">
+            <span class="exec-name">${escapeHtml(name)}</span>
+            ${truncatedHeadline ? `<span class="exec-headline" title="${escapeHtml(headline)}">${escapeHtml(truncatedHeadline)}</span>` : ''}
+            <a href="${escapeHtml(profileUrl)}" target="_blank" class="exec-profile-link">View Profile ↗</a>
+          </div>`;
+      }
+
+      function renderStructuredExecutives(companies) {
+        const tbody = document.getElementById('structured-executives-table');
+        if (!companies || companies.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">👔</div>No companies with executives found yet</td></tr>';
+          document.getElementById('structured-executives-pagination').style.display = 'none';
+          return;
+        }
+
+        tbody.innerHTML = companies.map(company => {
+          const companyName = escapeHtml(company.company_name || 'Unknown');
+          const siteUrl = escapeHtml(company.site_url || '');
+          const companyUrl = escapeHtml(company.company_url || '#');
+
+          return `
+            <tr>
+              <td class="exec-company-cell">
+                <div class="exec-company-name">${companyName}</div>
+                <div class="exec-site-url">${truncate(siteUrl, 30)}</div>
+                <a href="${companyUrl}" target="_blank" class="exec-profile-link">LinkedIn ↗</a>
+              </td>
+              <td class="exec-cell">${renderExecCell(company.founder1)}</td>
+              <td class="exec-cell">${renderExecCell(company.founder2)}</td>
+              <td class="exec-cell">${renderExecCell(company.founder3)}</td>
+              <td class="exec-cell">${renderExecCell(company.ceo)}</td>
+              <td class="exec-cell">${renderExecCell(company.cto)}</td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('structured-executives-pagination').style.display =
+          pageState['structured-executives'].totalPages > 1 ? 'flex' : 'none';
+      }
+
+      function searchStructuredExecutives(event) {
+        if (event.key === 'Enter') {
+          pageState['structured-executives'].page = 1;
+          loadStructuredExecutives();
         }
       }
 
@@ -6728,6 +7166,7 @@
           else if (type === "phones") loadPhones();
           else if (type === "linkedin") loadLinkedin();
           else if (type === "executives") loadExecutives();
+          else if (type === "structured-executives") loadStructuredExecutives();
         }
       }
 
@@ -6739,6 +7178,7 @@
           else if (type === "phones") loadPhones();
           else if (type === "linkedin") loadLinkedin();
           else if (type === "executives") loadExecutives();
+          else if (type === "structured-executives") loadStructuredExecutives();
         }
       }
 
@@ -7141,6 +7581,45 @@
           }
         } catch (error) {
           alert("Error starting scrapers");
+        }
+      }
+
+      async function deleteAllData() {
+        const firstConfirm = confirm(
+          "⚠️ DELETE ALL DATA?\n\nThis will permanently delete:\n• All keywords & searches\n• All sites & contacts\n• All executives\n• All email senders, templates, campaigns & queue\n• All excluded domains\n\nThis action CANNOT be undone!"
+        );
+        if (!firstConfirm) return;
+
+        const secondConfirm = confirm(
+          "🚨 FINAL WARNING 🚨\n\nAre you absolutely sure you want to delete EVERYTHING?\n\nType OK to proceed."
+        );
+        if (!secondConfirm) return;
+
+        try {
+          const res = await fetch(`${API_BASE}/delete-all`, { method: "DELETE" });
+          const json = await res.json();
+          if (json.success) {
+            const counts = json.data;
+            const total = Object.values(counts).reduce((a, b) => a + b, 0);
+            showToast(`✅ Deleted ${total} records across all tables`, "success");
+            // Refresh current view
+            loadDashboard();
+            if (currentTab === "keywords") loadKeywords();
+            else if (currentTab === "sites") loadSites();
+            else if (currentTab === "emails") loadEmails();
+            else if (currentTab === "phones") loadPhones();
+            else if (currentTab === "linkedin") loadLinkedin();
+            else if (currentTab === "executives") {
+              if (executivesViewMode === 'structured') loadStructuredExecutives();
+              else loadExecutives();
+            }
+            else if (currentTab === "senders") loadSenders();
+            else if (currentTab === "templates") loadTemplates();
+          } else {
+            showToast("❌ " + (json.error || "Failed to delete data"), "error");
+          }
+        } catch (error) {
+          showToast("❌ Error deleting all data", "error");
         }
       }
 
@@ -7756,10 +8235,10 @@
       }
 
       async function deleteTemplate(id) {
-        if (!confirm("Delete this template?")) return;
+        if (!confirm("Delete this template? This will also delete any campaigns and queue entries using it.")) return;
 
         try {
-          const res = await fetch(`${API_BASE}/email/templates/${id}`, {
+          const res = await fetch(`${API_BASE}/email/templates/${id}?force=true`, {
             method: "DELETE",
           });
           const json = await res.json();
@@ -10951,6 +11430,494 @@
         if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
         if (num >= 1000) return (num / 1000).toFixed(1) + "K";
         return num.toString();
+      }
+
+      // ========== EXPORT FUNCTIONS ==========
+
+      function toggleExportMenu(e) {
+        e.stopPropagation();
+        const dropdown = document.getElementById('exportDropdown');
+        const overlay = document.getElementById('exportOverlay');
+        const isOpen = dropdown.classList.contains('open');
+        dropdown.classList.toggle('open');
+        overlay.classList.toggle('active', !isOpen);
+      }
+
+      function closeExportMenu() {
+        document.getElementById('exportDropdown').classList.remove('open');
+        document.getElementById('exportOverlay').classList.remove('active');
+      }
+
+      async function exportAllData(format) {
+        closeExportMenu();
+        showToast(`Preparing ${format.toUpperCase()} export...`, 'success');
+
+        try {
+          const res = await fetch(`${API_BASE}/export-all`);
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error || 'Export failed');
+          const data = json.data;
+
+          switch (format) {
+            case 'csv':  downloadCSV(data); break;
+            case 'pdf':  downloadPDF(data); break;
+            case 'json': downloadJSON(data); break;
+          }
+        } catch (err) {
+          showToast('Export failed: ' + err.message, 'error');
+        }
+      }
+
+      // ---- CSV ----
+      function downloadCSV(data) {
+        const records = data.records || [];
+        let csv = '';
+
+        // Header row
+        csv += csvRow([
+          'URL', 'Is WordPress', 'AI Verified WP', 'Category', 'Relevance',
+          'Content Summary', 'Confidence Score', 'Search Query', 'Checked At',
+          'Emails', 'Phones', 'LinkedIn URLs',
+          'Company Name', 'Executive Names', 'Executive Titles', 'Executive Roles', 'Executive LinkedIn Profiles'
+        ]);
+
+        // Data rows — one per site
+        records.forEach(r => {
+          csv += csvRow([
+            r.url,
+            r.is_wordpress ? 'Yes' : 'No',
+            r.ai_verified_wp === 1 ? 'Yes' : r.ai_verified_wp === 0 ? 'No' : '',
+            r.ai_actual_category || '',
+            r.ai_content_relevant === 1 ? 'Relevant' : r.ai_content_relevant === 0 ? 'Not Relevant' : '',
+            r.ai_content_summary || '',
+            r.confidence_score || 0,
+            r.search_query || '',
+            r.checked_at || '',
+            (r.emails || []).join('; '),
+            (r.phones || []).join('; '),
+            (r.linkedin_urls || []).join('; '),
+            r.company_name || '',
+            (r.executive_names || []).join('; '),
+            (r.executive_titles || []).join('; '),
+            (r.executive_roles || []).join('; '),
+            (r.executive_profiles || []).join('; ')
+          ]);
+        });
+
+        triggerDownload(csv, 'wp-detector-export.csv', 'text/csv;charset=utf-8;');
+        showToast(`CSV exported — ${records.length} records`, 'success');
+      }
+
+      function csvRow(fields) {
+        return fields.map(f => '"' + String(f).replace(/"/g, '""') + '"').join(',') + '\n';
+      }
+
+      // ---- JSON ----
+      function downloadJSON(data) {
+        const jsonStr = JSON.stringify(data, null, 2);
+        triggerDownload(jsonStr, 'wp-detector-export.json', 'application/json');
+        showToast('JSON exported successfully!', 'success');
+      }
+
+      // ---- PDF ----
+      function downloadPDF(data) {
+        const doc = buildPDFDocument(data);
+        const blob = new Blob([doc], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'wp-detector-export.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('PDF exported successfully!', 'success');
+      }
+
+      function buildPDFDocument(data) {
+        const records = data.records || [];
+        const keywords = data.keywords || [];
+
+        // Page dimensions (A4)
+        const PAGE_W = 595;
+        const PAGE_H = 842;
+        const ML = 50;   // left margin
+        const MR = 45;   // right margin
+        const MT = 50;   // top margin
+        const MB = 50;   // bottom margin
+        const CONTENT_W = PAGE_W - ML - MR; // 500pt usable
+        const TOP_Y = PAGE_H - MT;          // 792
+        const BOTTOM_Y = MB;
+
+        let pages = [];
+        let currentPage = { texts: [], graphics: [] };
+        let y = TOP_Y;
+
+        // Approximate char width for Helvetica (proportional estimate)
+        function charWidth(fontSize) { return fontSize * 0.52; }
+        function maxChars(fontSize, indent) {
+          return Math.floor((CONTENT_W - indent) / charWidth(fontSize));
+        }
+
+        // Word-wrap text into lines that fit within available width
+        function wrapText(text, fontSize, indent) {
+          const max = maxChars(fontSize, indent);
+          if (max <= 0) return [text];
+          const words = String(text).split(' ');
+          const lines = [];
+          let current = '';
+          for (const word of words) {
+            if (current.length === 0) {
+              current = word;
+            } else if ((current + ' ' + word).length <= max) {
+              current += ' ' + word;
+            } else {
+              lines.push(current);
+              current = word;
+            }
+            // Force-break very long words
+            while (current.length > max) {
+              lines.push(current.substring(0, max));
+              current = current.substring(max);
+            }
+          }
+          if (current.length > 0) lines.push(current);
+          return lines.length > 0 ? lines : [''];
+        }
+
+        // Check page space, start new page if needed
+        function ensureSpace(needed) {
+          if (y - needed < BOTTOM_Y) {
+            pages.push(currentPage);
+            currentPage = { texts: [], graphics: [] };
+            y = TOP_Y;
+          }
+        }
+
+        // Add a text line (single, no wrapping)
+        function addTextRaw(text, x, fontSize, bold) {
+          ensureSpace(fontSize + 4);
+          currentPage.texts.push({
+            text: sanitizePDF(text),
+            x: x,
+            y: y,
+            fontSize: fontSize,
+            bold: !!bold
+          });
+          y -= fontSize + 4;
+        }
+
+        // Add wrapped text block
+        function addText(text, fontSize, indent, bold) {
+          const lines = wrapText(String(text || ''), fontSize, indent || 0);
+          const x = ML + (indent || 0);
+          lines.forEach(line => {
+            addTextRaw(line, x, fontSize, bold);
+          });
+        }
+
+        // Section header with colored background bar
+        function addSectionHeader(text) {
+          ensureSpace(28);
+          y -= 6; // gap before
+          // Draw colored background rectangle
+          currentPage.graphics.push({
+            type: 'rect',
+            x: ML,
+            y: y - 4,
+            w: CONTENT_W,
+            h: 20,
+            r: 0.27, g: 0.38, b: 0.76 // accent blue
+          });
+          currentPage.texts.push({
+            text: sanitizePDF(text),
+            x: ML + 8,
+            y: y,
+            fontSize: 12,
+            bold: true,
+            color: 'white'
+          });
+          y -= 26;
+        }
+
+        // Sub-header (record divider)
+        function addRecordHeader(text) {
+          ensureSpace(24);
+          y -= 4;
+          // Light gray background
+          currentPage.graphics.push({
+            type: 'rect',
+            x: ML,
+            y: y - 3,
+            w: CONTENT_W,
+            h: 18,
+            r: 0.94, g: 0.95, b: 0.97
+          });
+          currentPage.texts.push({
+            text: sanitizePDF(text),
+            x: ML + 6,
+            y: y,
+            fontSize: 10,
+            bold: true
+          });
+          y -= 22;
+        }
+
+        // Labeled field:  "Label: value" with bold label
+        function addField(label, value, indent) {
+          if (!value && value !== 0) return;
+          const ind = indent || 10;
+          const fullText = `${label}: ${value}`;
+          const lines = wrapText(fullText, 9, ind);
+          const x = ML + ind;
+          lines.forEach((line, li) => {
+            ensureSpace(14);
+            if (li === 0) {
+              // First line: render label in bold, value in normal
+              const labelStr = sanitizePDF(label + ':');
+              const valueStr = sanitizePDF(line.substring(label.length + 1).trimStart());
+              // Bold label
+              currentPage.texts.push({
+                text: labelStr,
+                x: x,
+                y: y,
+                fontSize: 9,
+                bold: true
+              });
+              // Normal value (offset by label width)
+              const labelW = labelStr.length * charWidth(9) + 3;
+              currentPage.texts.push({
+                text: valueStr,
+                x: x + labelW,
+                y: y,
+                fontSize: 9,
+                bold: false
+              });
+            } else {
+              // Continuation lines: indent further
+              currentPage.texts.push({
+                text: sanitizePDF(line),
+                x: x + 15,
+                y: y,
+                fontSize: 9,
+                bold: false
+              });
+            }
+            y -= 13;
+          });
+        }
+
+        // Simple list item
+        function addListItem(text, indent) {
+          addText(text, 9, indent || 10, false);
+        }
+
+        // Thin horizontal separator line
+        function addSeparator() {
+          ensureSpace(8);
+          y -= 3;
+          currentPage.graphics.push({
+            type: 'line',
+            x1: ML,
+            y1: y,
+            x2: ML + CONTENT_W,
+            y2: y,
+            r: 0.85, g: 0.87, b: 0.9
+          });
+          y -= 5;
+        }
+
+        function addBlank(h) { y -= (h || 8); }
+
+        // =====================
+        //  BUILD PDF CONTENT
+        // =====================
+
+        // Title
+        ensureSpace(30);
+        addTextRaw('WordPress Detector Pro — Full Export Report', ML, 16, true);
+        addTextRaw('Generated: ' + new Date().toLocaleString(), ML, 9, false);
+        addBlank(10);
+
+        // Summary section
+        addSectionHeader('SUMMARY');
+        const wpCount = records.filter(r => r.is_wordpress).length;
+        const totalEmails = records.reduce((s, r) => s + (r.emails || []).length, 0);
+        const totalPhones = records.reduce((s, r) => s + (r.phones || []).length, 0);
+        const totalLinkedIn = records.reduce((s, r) => s + (r.linkedin_urls || []).length, 0);
+        const totalExecs = records.reduce((s, r) => s + (r.executive_names || []).length, 0);
+
+        addField('Total Sites', records.length);
+        addField('WordPress Sites', wpCount);
+        addField('Total Emails', totalEmails);
+        addField('Total Phones', totalPhones);
+        addField('Total LinkedIn', totalLinkedIn);
+        addField('Total Executives', totalExecs);
+        addField('Total Keywords', keywords.length);
+        addBlank(10);
+
+        // Lead Records
+        addSectionHeader('LEAD RECORDS (' + records.length + ')');
+        addBlank(4);
+
+        records.forEach((r, i) => {
+          // Each record block
+          addRecordHeader('Record ' + (i + 1) + '  —  ' + (r.url || '').substring(0, 80));
+
+          addField('URL', r.url, 10);
+          addField('WordPress', r.is_wordpress ? 'Yes' : 'No', 10);
+          addField('AI Verified', r.ai_verified_wp === 1 ? 'Yes' : r.ai_verified_wp === 0 ? 'No' : 'N/A', 10);
+          addField('Confidence', r.confidence_score || 0, 10);
+          addField('Category', r.ai_actual_category || 'N/A', 10);
+          addField('Relevant', r.ai_content_relevant === 1 ? 'Yes' : r.ai_content_relevant === 0 ? 'No' : 'N/A', 10);
+          addField('Search Query', r.search_query || 'N/A', 10);
+
+          if (r.ai_content_summary)
+            addField('Summary', r.ai_content_summary, 10);
+
+          // Contacts sub-section
+          const hasContacts = (r.emails || []).length > 0 || (r.phones || []).length > 0 || (r.linkedin_urls || []).length > 0;
+          if (hasContacts) {
+            addBlank(4);
+            addText('Contacts:', 9, 10, true);
+            (r.emails || []).forEach(e => addListItem('Email:  ' + e, 20));
+            (r.phones || []).forEach(p => addListItem('Phone:  ' + p, 20));
+            (r.linkedin_urls || []).forEach(l => addListItem('LinkedIn:  ' + l, 20));
+          }
+
+          // Executives sub-section
+          if ((r.executive_names || []).length > 0) {
+            addBlank(4);
+            addText('Executives (' + r.company_name + '):', 9, 10, true);
+            r.executive_names.forEach((name, ei) => {
+              const title = (r.executive_titles || [])[ei] || '';
+              const role = (r.executive_roles || [])[ei] || '';
+              addListItem((ei + 1) + '. ' + (name || 'N/A'), 20);
+              if (title) addListItem('Title: ' + title, 30);
+              if (role) addListItem('Role: ' + role, 30);
+            });
+          }
+
+          addSeparator();
+        });
+
+        // Keywords section
+        addBlank(6);
+        addSectionHeader('KEYWORDS (' + keywords.length + ')');
+        keywords.forEach((k, i) => {
+          addField((i + 1) + '. ' + k.keyword, 'Status: ' + k.status, 10);
+        });
+
+        // Push final page
+        pages.push(currentPage);
+
+        return generateRawPDF(pages);
+      }
+
+      function sanitizePDF(text) {
+        return String(text || '')
+          .replace(/\\/g, '\\\\')
+          .replace(/\(/g, '\\(')
+          .replace(/\)/g, '\\)')
+          .replace(/[^\x20-\x7E\\]/g, ' ');
+      }
+
+      function generateRawPDF(pages) {
+        let objId = 0;
+        const newObj = () => ++objId;
+
+        const catalogId = newObj();   // 1
+        const pagesId = newObj();     // 2
+        const fontRegId = newObj();   // 3 - Helvetica
+        const fontBoldId = newObj();  // 4 - Helvetica-Bold
+
+        const pageIds = [];
+        const contentIds = [];
+
+        pages.forEach(() => {
+          pageIds.push(newObj());
+          contentIds.push(newObj());
+        });
+
+        let pdf = '%PDF-1.4\n';
+        const offsets = [];
+
+        function addObject(id, content) {
+          offsets[id] = pdf.length;
+          pdf += `${id} 0 obj\n${content}\nendobj\n`;
+        }
+
+        addObject(catalogId, `<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+        const kids = pageIds.map(id => `${id} 0 R`).join(' ');
+        addObject(pagesId, `<< /Type /Pages /Kids [${kids}] /Count ${pageIds.length} >>`);
+        addObject(fontRegId, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+        addObject(fontBoldId, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+
+        pages.forEach((page, idx) => {
+          const contentId = contentIds[idx];
+          const pageId = pageIds[idx];
+
+          let stream = '';
+
+          // Draw all graphics first (rectangles, lines — behind text)
+          (page.graphics || []).forEach(g => {
+            if (g.type === 'rect') {
+              stream += `${g.r} ${g.g} ${g.b} rg\n`;
+              stream += `${g.x} ${g.y} ${g.w} ${g.h} re f\n`;
+            } else if (g.type === 'line') {
+              stream += `${g.r} ${g.g} ${g.b} RG\n`;
+              stream += `0.5 w\n`;
+              stream += `${g.x1} ${g.y1} m ${g.x2} ${g.y2} l S\n`;
+            }
+          });
+
+          // Draw all text
+          stream += 'BT\n';
+          (page.texts || []).forEach(t => {
+            // Set color
+            if (t.color === 'white') {
+              stream += '1 1 1 rg\n';
+            } else {
+              stream += '0.12 0.14 0.17 rg\n'; // dark gray text
+            }
+            // Set font
+            const fontKey = t.bold ? '/F2' : '/F1';
+            stream += `${fontKey} ${t.fontSize} Tf\n`;
+            stream += `1 0 0 1 ${t.x} ${t.y} Tm\n`;
+            stream += `(${t.text}) Tj\n`;
+          });
+          stream += 'ET\n';
+
+          addObject(contentId, `<< /Length ${stream.length} >>\nstream\n${stream}endstream`);
+          addObject(pageId,
+            `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] ` +
+            `/Contents ${contentId} 0 R /Resources << /Font << /F1 ${fontRegId} 0 R /F2 ${fontBoldId} 0 R >> >> >>`);
+        });
+
+        const xrefOffset = pdf.length;
+        pdf += 'xref\n';
+        pdf += `0 ${objId + 1}\n`;
+        pdf += '0000000000 65535 f \n';
+        for (let i = 1; i <= objId; i++) {
+          pdf += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+        }
+        pdf += 'trailer\n';
+        pdf += `<< /Size ${objId + 1} /Root ${catalogId} 0 R >>\n`;
+        pdf += 'startxref\n';
+        pdf += `${xrefOffset}\n`;
+        pdf += '%%EOF';
+
+        return pdf;
+      }
+
+      function triggerDownload(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       }
     </script>
   </body>

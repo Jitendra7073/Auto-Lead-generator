@@ -704,6 +704,91 @@ app.get("/api/export", (req, res) => {
   }
 });
 
+// Comprehensive export - relational data (one record per site)
+app.get("/api/export-all", (req, res) => {
+  try {
+    const database = db.initDatabase();
+
+    // Sites
+    const sites = database.prepare(`
+      SELECT id, url, is_wordpress, confidence_score, search_query, checked_at,
+             ai_status, ai_verified_wp, ai_content_relevant, ai_actual_category,
+             ai_content_summary, ai_mismatch_reason, classification, relevance_score,
+             tags, primary_language, value_proposition
+      FROM sites ORDER BY id DESC
+    `).all();
+
+    // Contacts grouped by site_id
+    const allContacts = database.prepare(`
+      SELECT site_id, type, value, source_page FROM contacts ORDER BY id ASC
+    `).all();
+
+    // Executives grouped by site_id
+    const allExecutives = database.prepare(`
+      SELECT site_id, company_name, name, headline, role_category, profile_url, company_url
+      FROM company_executives ORDER BY id ASC
+    `).all();
+
+    // Keywords
+    const keywords = database.prepare(`
+      SELECT id, keyword, status, max_sites, created_at
+      FROM keywords ORDER BY id DESC
+    `).all();
+
+    database.close();
+
+    // Group contacts and executives by site_id
+    const contactsBySite = {};
+    allContacts.forEach(c => {
+      if (!contactsBySite[c.site_id]) contactsBySite[c.site_id] = [];
+      contactsBySite[c.site_id].push(c);
+    });
+
+    const execsBySite = {};
+    allExecutives.forEach(e => {
+      if (!execsBySite[e.site_id]) execsBySite[e.site_id] = [];
+      execsBySite[e.site_id].push(e);
+    });
+
+    // Build flat records: one per site with related data embedded
+    const records = sites.map(site => {
+      const siteContacts = contactsBySite[site.id] || [];
+      const siteExecs = execsBySite[site.id] || [];
+
+      return {
+        url: site.url,
+        is_wordpress: site.is_wordpress,
+        confidence_score: site.confidence_score,
+        search_query: site.search_query,
+        checked_at: site.checked_at,
+        ai_verified_wp: site.ai_verified_wp,
+        ai_content_relevant: site.ai_content_relevant,
+        ai_actual_category: site.ai_actual_category,
+        ai_content_summary: site.ai_content_summary,
+        emails: siteContacts.filter(c => c.type === 'email').map(c => c.value),
+        phones: siteContacts.filter(c => c.type === 'phone').map(c => c.value),
+        linkedin_urls: siteContacts.filter(c => c.type === 'linkedin').map(c => c.value),
+        executive_names: siteExecs.map(e => e.name || ''),
+        executive_titles: siteExecs.map(e => e.headline || ''),
+        executive_roles: siteExecs.map(e => e.role_category || ''),
+        executive_profiles: siteExecs.map(e => e.profile_url || ''),
+        company_name: siteExecs.length > 0 ? (siteExecs[0].company_name || '') : '',
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        exportedAt: new Date().toISOString(),
+        records,
+        keywords,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ============ SITE API ROUTES ============
 
 // Update site
@@ -731,6 +816,23 @@ app.post("/api/sites/deletion-preview", (req, res) => {
     const preview = db.getSiteDeletionPreview(ids);
     res.json({ success: true, data: preview });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============ DELETE ALL DATA ============
+// Factory reset - delete everything from all tables
+app.delete("/api/delete-all", (req, res) => {
+  try {
+    const counts = db.deleteAllData();
+    console.log("🗑️ All data deleted:", counts);
+    res.json({
+      success: true,
+      message: "All data has been deleted successfully",
+      data: counts,
+    });
+  } catch (error) {
+    console.error("❌ Error deleting all data:", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -886,6 +988,19 @@ app.get("/api/executives", (req, res) => {
     const search = req.query.search || null;
     const role = req.query.role || "all";
     const result = db.getCompanyExecutives(page, limit, search, role);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get structured executives grouped by company (Founder 1,2,3 + CEO + CTO)
+app.get("/api/executives/structured", (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || null;
+    const result = db.getStructuredExecutives(page, limit, search);
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

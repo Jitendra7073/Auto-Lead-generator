@@ -650,6 +650,11 @@ router.delete("/senders/:id", (req, res) => {
       });
     }
 
+    // Delete related queue entries that reference this sender
+    db.run("DELETE FROM email_queue WHERE sender_id = ?", [req.params.id]);
+    // Nullify sender reference in send log (keep log for history)
+    db.run("UPDATE email_queue SET sender_id = NULL WHERE sender_id = ?", [req.params.id]);
+    // Now safe to delete the sender
     db.run("DELETE FROM email_senders WHERE id = ?", [req.params.id]);
 
     res.json({
@@ -1312,19 +1317,28 @@ router.delete("/templates/:id", (req, res) => {
       });
     }
 
+    const forceDelete = req.query.force === 'true';
+
     // Check if template is being used by any campaign
     const inUse = db.get(
       "SELECT id FROM email_campaigns WHERE template_id = ?",
       [req.params.id],
     );
 
-    if (inUse) {
+    if (inUse && !forceDelete) {
       return res.status(400).json({
         success: false,
-        error: "Cannot delete template that is in use by campaigns",
+        error: "Template is used by campaigns. Delete those campaigns first, or use force delete.",
       });
     }
 
+    // Cascade: delete send_log entries referencing this template
+    db.run("DELETE FROM email_send_log WHERE template_id = ?", [req.params.id]);
+    // Cascade: delete queue entries for campaigns using this template
+    db.run("DELETE FROM email_queue WHERE campaign_id IN (SELECT id FROM email_campaigns WHERE template_id = ?)", [req.params.id]);
+    // Cascade: delete campaigns using this template
+    db.run("DELETE FROM email_campaigns WHERE template_id = ?", [req.params.id]);
+    // Now delete the template
     db.run("DELETE FROM email_templates WHERE id = ?", [req.params.id]);
 
     // Sync gap settings after deleting a template (may reduce max sequence)

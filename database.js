@@ -585,19 +585,46 @@ function updateKeyword(id, keyword) {
 }
 
 /**
- * Delete keyword
+ * Delete keyword and cascade delete all related data:
+ * keyword → searches (by query match) → sites → contacts → executives
  * @param {number} id - Keyword ID
  * @returns {boolean} - Success
  */
 function deleteKeyword(id) {
   const db = initDatabase();
-  const result = db
-    .prepare(
-      `
-    DELETE FROM keywords WHERE id = ?
-  `,
-    )
-    .run(id);
+  
+  // Get the keyword text to find related searches
+  const keyword = db.prepare("SELECT keyword FROM keywords WHERE id = ?").get(id);
+  
+  if (keyword) {
+    // Find all searches that match this keyword
+    const searches = db.prepare("SELECT id FROM searches WHERE query = ?").all(keyword.keyword);
+    const searchIds = searches.map(s => s.id);
+    
+    if (searchIds.length > 0) {
+      const placeholders = searchIds.map(() => '?').join(',');
+      
+      // Get all site IDs from those searches
+      const sites = db.prepare(`SELECT id FROM sites WHERE search_id IN (${placeholders})`).all(...searchIds);
+      const siteIds = sites.map(s => s.id);
+      
+      if (siteIds.length > 0) {
+        const sitePlaceholders = siteIds.map(() => '?').join(',');
+        // Delete contacts for those sites
+        db.prepare(`DELETE FROM contacts WHERE site_id IN (${sitePlaceholders})`).run(...siteIds);
+        // Delete executives for those sites
+        db.prepare(`DELETE FROM company_executives WHERE site_id IN (${sitePlaceholders})`).run(...siteIds);
+      }
+      
+      // Delete sites for those searches
+      db.prepare(`DELETE FROM sites WHERE search_id IN (${placeholders})`).run(...searchIds);
+      // Delete the searches themselves
+      db.prepare(`DELETE FROM searches WHERE id IN (${placeholders})`).run(...searchIds);
+    }
+  }
+  
+  // Finally delete the keyword
+  const result = db.prepare("DELETE FROM keywords WHERE id = ?").run(id);
   db.close();
   return result.changes > 0;
 }
@@ -1666,6 +1693,7 @@ function getExecutivesStats() {
       SUM(CASE WHEN role_category = 'founder' THEN 1 ELSE 0 END) as founders,
       SUM(CASE WHEN role_category = 'co-founder' THEN 1 ELSE 0 END) as co_founders,
       SUM(CASE WHEN role_category = 'ceo' THEN 1 ELSE 0 END) as ceos,
+      SUM(CASE WHEN role_category = 'cto' THEN 1 ELSE 0 END) as ctos,
       SUM(CASE WHEN role_category = 'president' THEN 1 ELSE 0 END) as presidents,
       SUM(CASE WHEN role_category = 'owner' THEN 1 ELSE 0 END) as owners
     FROM company_executives
@@ -1697,6 +1725,95 @@ function getExecutivesByCompany(companyUrl) {
 
   db.close();
   return executives;
+}
+
+/**
+ * Get structured executives grouped by company with fixed 5 role slots:
+ * Founder 1, Founder 2, Founder 3, CEO, CTO
+ * @param {number} page - Page number
+ * @param {number} limit - Items per page
+ * @param {string} search - Optional search filter
+ * @returns {Object} - Structured executives with pagination
+ */
+function getStructuredExecutives(page = 1, limit = 20, search = null) {
+  const db = initDatabase();
+  const offset = (page - 1) * limit;
+
+  let whereClause = '1=1';
+  const params = [];
+
+  if (search && search.trim() !== '') {
+    whereClause = '(ce.company_name LIKE ? OR ce.name LIKE ? OR ce.headline LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  // Get distinct companies with pagination
+  const countResult = db.prepare(`
+    SELECT COUNT(DISTINCT ce.company_url) as total
+    FROM company_executives ce
+    INNER JOIN sites s ON ce.site_id = s.id
+    WHERE ${whereClause}
+  `).get(...params);
+
+  const companies = db.prepare(`
+    SELECT DISTINCT
+      ce.company_url,
+      ce.company_name,
+      ce.site_id,
+      s.url as site_url
+    FROM company_executives ce
+    INNER JOIN sites s ON ce.site_id = s.id
+    WHERE ${whereClause}
+    ORDER BY ce.company_name
+    LIMIT ? OFFSET ?
+  `).all(...params, limit, offset);
+
+  // For each company, get all executives and structure into 5 slots
+  const founderRoles = ['founder', 'co-founder', 'owner'];
+  const structured = companies.map((company) => {
+    const execs = db.prepare(`
+      SELECT id, name, headline, profile_url, role_category
+      FROM company_executives
+      WHERE company_url = ?
+      ORDER BY 
+        CASE role_category
+          WHEN 'founder' THEN 1
+          WHEN 'co-founder' THEN 2
+          WHEN 'owner' THEN 3
+          ELSE 4
+        END,
+        name
+    `).all(company.company_url);
+
+    // Pick up to 3 founders (founder > co-founder > owner priority)
+    const founders = execs.filter((e) => founderRoles.includes(e.role_category)).slice(0, 3);
+    const ceo = execs.find((e) => e.role_category === 'ceo') || null;
+    const cto = execs.find((e) => e.role_category === 'cto') || null;
+
+    return {
+      company_url: company.company_url,
+      company_name: company.company_name || 'Unknown',
+      site_id: company.site_id,
+      site_url: company.site_url,
+      founder1: founders[0] || null,
+      founder2: founders[1] || null,
+      founder3: founders[2] || null,
+      ceo: ceo,
+      cto: cto,
+    };
+  });
+
+  db.close();
+
+  return {
+    companies: structured,
+    pagination: {
+      page,
+      limit,
+      total: countResult.total,
+      totalPages: Math.ceil(countResult.total / limit),
+    },
+  };
 }
 
 // ============ AI ENRICHMENT ============
@@ -1906,6 +2023,34 @@ function updateExecutive(id, data) {
   return result.changes > 0;
 }
 
+/**
+ * Delete ALL data from the database (factory reset).
+ * Deletes everything in correct order to avoid FK constraints.
+ * @returns {Object} - Counts of deleted rows per table
+ */
+function deleteAllData() {
+  const db = initDatabase();
+  const counts = {};
+
+  // Email tables (via shared db, but we'll use this db instance)
+  try { counts.email_send_log = db.prepare("DELETE FROM email_send_log").run().changes; } catch (e) { counts.email_send_log = 0; }
+  try { counts.email_queue = db.prepare("DELETE FROM email_queue").run().changes; } catch (e) { counts.email_queue = 0; }
+  try { counts.email_campaigns = db.prepare("DELETE FROM email_campaigns").run().changes; } catch (e) { counts.email_campaigns = 0; }
+  try { counts.email_templates = db.prepare("DELETE FROM email_templates").run().changes; } catch (e) { counts.email_templates = 0; }
+  try { counts.email_senders = db.prepare("DELETE FROM email_senders").run().changes; } catch (e) { counts.email_senders = 0; }
+
+  // Core data tables (order matters for FK)
+  counts.company_executives = db.prepare("DELETE FROM company_executives").run().changes;
+  counts.contacts = db.prepare("DELETE FROM contacts").run().changes;
+  counts.sites = db.prepare("DELETE FROM sites").run().changes;
+  counts.searches = db.prepare("DELETE FROM searches").run().changes;
+  counts.keywords = db.prepare("DELETE FROM keywords").run().changes;
+  counts.excluded_domains = db.prepare("DELETE FROM excluded_domains").run().changes;
+
+  db.close();
+  return counts;
+}
+
 module.exports = {
   initDatabase,
   saveSearchResults,
@@ -1940,6 +2085,7 @@ module.exports = {
   getCompanyExecutives,
   getExecutivesStats,
   getExecutivesByCompany,
+  getStructuredExecutives,
   // AI Enrichment
   getPendingAISites,
   updateSiteAIResults,
@@ -1962,6 +2108,8 @@ module.exports = {
   isUrlExcluded,
   filterExcludedUrls,
   extractDomain,
+  // Reset
+  deleteAllData,
   // Low-level SQLite wrappers (used by email-senders-templates-api.js & email-queue-worker.js)
   run,
   all,
